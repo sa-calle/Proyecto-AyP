@@ -147,6 +147,62 @@ def mostrar_campos_apoyos(*args):
         label_apoyo_fijo.grid_remove()
         entry_apoyo_fijo.grid_remove()
 
+#!-------------------------------reacciones en los apoyos-------------------------------
+
+def viga_1(long, vector, n): #[F, L, tipo]
+    #calculo de reacciones
+
+    reac_B_y = 0.0
+    reac_A_y =0.0
+
+    for i in range (n):
+        if vector[i][2] == 0:
+            reac_B_y += vector[i][0]*vector[i][1]
+            reac_A_y += vector[i][0]
+        elif vector[i][2] == 1:
+            reac_B_y += (vector[i][0]*long**2)/2
+            reac_A_y += vector[i][0]*long
+
+    reac_B_y/=long
+    reac_A_y-= reac_B_y
+    return( reac_A_y, reac_B_y)
+
+def viga_2(long, vector, n):
+    #calculo de reacciones
+    M_A = 0.0
+    M_B = 0.0
+    reac_A_y =0.0
+    reac_B_y =0.0
+
+    for i in range (n):
+        if vector[i][2] == 0:
+            M_A += -vector[i][0]*vector[i][1]
+            reac_A_y += vector[i][0]
+        elif vector[i][2] == 1:
+            M_A += (vector[i][0]*long**2)/2
+            reac_A_y += vector[i][0]*long
+    return(M_A, reac_A_y)
+
+def viga_3(long,vector, n):
+  #calculo de reacciones
+    M_A = 0.0
+    reac_A_y =0.0
+
+    for i in range (n):
+        if vector[i][2] == 0:
+            M_A += (vector[i][0]*(long-vector[i][1])**2*vector[i][1])/long
+            M_B += -M_A
+            reac_B_y = (-M_A + M_B + vector[i][0]*vector[i][1])/long
+            reac_A_y += vector[i][0] - reac_B_y
+        elif vector[i][2] == 1:
+            M_A += (vector[i][0]*(long)**2)/12
+            M_B += -M_A
+            reac_B_y = (-M_A + M_B + vector[i][0]*long**2/2)/long
+            reac_A_y += vector[i][0]*long - reac_B_y
+    return(M_A, M_B, reac_A_y, reac_B_y)
+
+#!--------------------------------------------------------------------------------------
+
 root = ttk.Window(themename="flatly")  
 root.title("Ingreso de Fuerzas y Datos de la Viga")
 root.geometry('500x600')
