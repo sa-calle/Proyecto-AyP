@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 def seguir(ventana_principal):
-    ventana_principal.destroy()
+    ventana_principal.withdraw()
 
     longitud_viga = 10
     datos = []  
