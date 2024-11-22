@@ -6,6 +6,10 @@ import numpy as np
 
 def seguir(ventana_principal):
     ventana_principal.withdraw()
+    
+    def terminar():
+        root.destroy()
+        ventana_principal.deiconify() 
 
     longitud_viga = 10
     datos = []  
@@ -206,9 +210,10 @@ def seguir(ventana_principal):
 
     #!--------------------------------------------------------------------------------------
 
-    root = ttk.Window(themename="darkly")  
+    root = tk.Toplevel(ventana_principal) 
     root.title("Ingreso de Fuerzas y Datos de la Viga")
     root.geometry('862x517')
+    root.protocol("WM_DELETE_WINDOW", terminar)
 
     viga_frame = ttk.Frame(root, padding=10)
     viga_frame.pack(padx=10, pady=10)
