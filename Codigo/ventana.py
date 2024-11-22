@@ -206,9 +206,9 @@ def seguir(ventana_principal):
 
     #!--------------------------------------------------------------------------------------
 
-    root = ttk.Window(themename="flatly")  
+    root = ttk.Window(themename="darkly")  
     root.title("Ingreso de Fuerzas y Datos de la Viga")
-    root.geometry('500x600')
+    root.geometry('862x517')
 
     viga_frame = ttk.Frame(root, padding=10)
     viga_frame.pack(padx=10, pady=10)
@@ -261,3 +261,4 @@ def seguir(ventana_principal):
     boton_graficar.grid(row=4, column=0, columnspan=2, padx=10, pady=10)
 
     root.mainloop()
+
