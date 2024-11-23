@@ -14,19 +14,6 @@ def seguir(ventana_principal):
     longitud_viga = 10
     datos = [] 
      
-    def calcular_reacciones(tipo_viga, fuerzas, longitud, x_apoyo_movil=None, x_apoyo_fijo=None):
-        if tipo_viga == "Simplemente apoyada":
-            R_A, R_B = reacciones_simlemente_apoyada(fuerzas, longitud, x_apoyo_movil, x_apoyo_fijo)
-
-        elif tipo_viga == "Viga en voladizo":
-            R_A, M_A = reacciones_voladizo(fuerzas, longitud)
-
-        elif tipo_viga == "Doblemente empotrada":
-            R_A, R_B, M_A, M_B = reacciones_empotrada(fuerzas, longitud)
-
-        else:
-            raise ValueError("Tipo de viga no reconocido. Los valores válidos son: 'Simplemente apoyada', 'Viga en voladizo', 'Doblemente empotrada'.")
-
     def graficar_viga(datos, long, material, tipo_de_viga, x_apoyo_fijo=None, x_apoyo_pat=None):
         altura_viga = 0.01 * long
 
@@ -165,18 +152,18 @@ def seguir(ventana_principal):
             if tipo_de_viga == "Simplemente apoyada":
                 if x_apoyo_pat is not None and x_apoyo_fijo is not None:
                     reacciones = reacciones_simlemente_apoyada(datos, longitud_viga, x_apoyo_pat, x_apoyo_fijo)
-                    reacciones_mensaje += f"Reacción en el apoyo móvil (R_A): {reacciones[0]:.2f} N\n"
-                    reacciones_mensaje += f"Reacción en el apoyo fijo (R_B): {reacciones[1]:.2f} N\n"
+                    reacciones_mensaje += f"Reacción en el apoyo móvil: {reacciones[0]:.2f} N\n"
+                    reacciones_mensaje += f"Reacción en el apoyo fijo: {reacciones[1]:.2f} N\n"
             elif tipo_de_viga == "Viga en voladizo":
                 reacciones = reacciones_voladizo(datos, longitud_viga)
-                reacciones_mensaje += f"Reacción vertical en el apoyo (R_A): {reacciones[0]:.2f} N\n"
-                reacciones_mensaje += f"Momento en el apoyo (M_A): {reacciones[1]:.2f} N·m\n"
+                reacciones_mensaje += f"Reacción en el empotramiento: {reacciones[0]:.2f} N\n"
+                reacciones_mensaje += f"Momento en el empotramiento: {reacciones[1]:.2f} N·m\n"
             elif tipo_de_viga == "Doblemente empotrada":
                 reacciones = reacciones_empotrada(datos, longitud_viga)
-                reacciones_mensaje += f"Reacción en el apoyo izquierdo (R_A): {reacciones[0]:.2f} N\n"
-                reacciones_mensaje += f"Reacción en el apoyo derecho (R_B): {reacciones[1]:.2f} N\n"
-                reacciones_mensaje += f"Momento en el apoyo izquierdo (M_A): {reacciones[2]:.2f} N·m\n"
-                reacciones_mensaje += f"Momento en el apoyo derecho (M_B): {reacciones[3]:.2f} N·m\n"
+                reacciones_mensaje += f"Reacción en el apoyo izquierdo: {reacciones[0]:.2f} N\n"
+                reacciones_mensaje += f"Reacción en el apoyo derecho: {reacciones[1]:.2f} N\n"
+                reacciones_mensaje += f"Momento en el apoyo izquierdo: {reacciones[2]:.2f} N·m\n"
+                reacciones_mensaje += f"Momento en el apoyo derecho: {reacciones[3]:.2f} N·m\n"
 
             mensaje = datos_viga + datos_fuerzas + reacciones_mensaje
             messagebox.showinfo("Datos de la Viga y Fuerzas", mensaje)
