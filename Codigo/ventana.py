@@ -2,7 +2,10 @@ import tkinter as tk
 from tkinter import messagebox
 import ttkbootstrap as ttk 
 import matplotlib.pyplot as plt
+from ttkbootstrap import ScrolledText
 import numpy as np
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+text_output = None
 
 def seguir(ventana_principal):
     ventana_principal.withdraw()
@@ -10,11 +13,9 @@ def seguir(ventana_principal):
     def terminar():
         root.destroy()
         ventana_principal.deiconify() 
-
-    longitud_viga = 10
-    datos = [] 
-     
+    
     def graficar_viga(datos, long, material, tipo_de_viga, x_apoyo_fijo=None, x_apoyo_pat=None):
+        global canvas_anterior
         altura_viga = 0.01 * long
 
         if material == "Madera":
@@ -60,13 +61,34 @@ def seguir(ventana_principal):
                 f'{carga}N', ha='center', va='bottom' if dy > 0 else 'top',
                 color='black'
             )
-
+        
         ax.set_xlabel('Longitud de la viga (m)')
         ax.axis('off')
-        plt.show()
+        ax.yaxis.set_visible(False)
+        if canvas_anterior is not None:
+            canvas_anterior.get_tk_widget().destroy()
+        if canvas_anterior is not None:
+            print("Eliminando el gráfico anterior...")
+            canvas_anterior.get_tk_widget().destroy()
+        canvas_anterior = FigureCanvasTkAgg(fig, master=resultados_frame)  
+        canvas_anterior.draw()
+
+        canvas_anterior.get_tk_widget().pack(pady=10, fill='none', expand=False)
 
     def obtener_datos():
-    
+        global canvas_anterior
+        canvas_anterior = None
+        global text_output
+        try:
+            if text_output:  
+                text_output.delete("1.0", "end") 
+                text_output.insert("1.0", "Datos de la viga y las fuerzas ingresadas:\n\n")
+                text_output.insert("end", "Ejemplo de datos...") 
+            else:
+                raise RuntimeError("El widget ScrolledText no está definido.")
+        except Exception as e:
+            print(f"Error en obtener_datos: {e}")
+        
         def reacciones_simlemente_apoyada(fuerzas, longitud, x_apoyo_movil, x_apoyo_fijo):
             R_A = 0.0
             R_B = 0.0
@@ -138,6 +160,7 @@ def seguir(ventana_principal):
                 tipo_de_viga = "Doblemente empotrada"
             else:
                 raise ValueError("Tipo de viga inválido.")
+            
 
             datos_viga = f"Tipo de viga: {tipo_de_viga}\nLongitud de la viga: {longitud_viga} m\nMaterial: {material}\n\n"
             datos_fuerzas = "Fuerzas ingresadas:\n"
@@ -165,15 +188,18 @@ def seguir(ventana_principal):
                 reacciones_mensaje += f"Momento en el apoyo izquierdo: {reacciones[2]:.2f} N·m\n"
                 reacciones_mensaje += f"Momento en el apoyo derecho: {reacciones[3]:.2f} N·m\n"
 
-            mensaje = datos_viga + datos_fuerzas + reacciones_mensaje
-            messagebox.showinfo("Datos de la Viga y Fuerzas", mensaje)
+            resultado = datos_viga + datos_fuerzas + reacciones_mensaje
+            text_output.delete("1.0", "end") 
+            text_output.insert("1.0", resultado)
 
             mostrar_grafico(x_apoyo_fijo, x_apoyo_pat, tipo_de_viga)
 
         except ValueError as e:
-            messagebox.showerror("Error", str(e))
+            text_output.delete("1.0", "end")
+            text_output.insert("1.0", f"Error: {str(e)}")
         except Exception as e:
-            messagebox.showerror("Error", f"Ocurrió un error: {str(e)}")
+            text_output.delete("1.0", "end")
+            text_output.insert("1.0", f"Ocurrió un error: {str(e)}")
 
     def agregar_fuerza():
         try:
@@ -221,13 +247,20 @@ def seguir(ventana_principal):
             label_apoyo_fijo.grid_remove()
             entry_apoyo_fijo.grid_remove()
 
+    longitud_viga = 10
+    datos = [] 
+    global text_output 
+    
     root = tk.Toplevel(ventana_principal) 
     root.title("Ingreso de Fuerzas y Datos de la Viga")
-    root.geometry('862x517')
+    root.geometry('860x600')
+    ventana_principal.resizable(False, False) 
     root.protocol("WM_DELETE_WINDOW", terminar)
-
-    viga_frame = ttk.Frame(root, padding=10)
-    viga_frame.pack(padx=10, pady=10)
+    datos_frame = ttk.Frame(root,padding=10)
+    datos_frame.pack(padx=10, pady=10)
+    
+    viga_frame = ttk.Frame(datos_frame, padding=10)
+    viga_frame.grid(row=0, column=0, padx=5, pady=5, sticky="w")
 
     label_tipo_viga = ttk.Label(viga_frame,
                                 text="Tipo de viga:", anchor="w")
@@ -264,8 +297,8 @@ def seguir(ventana_principal):
     label_apoyo_fijo = ttk.Label(viga_frame, text="Coordenada del apoyo fijo [m]:", anchor="w")
     entry_apoyo_fijo = ttk.Entry(viga_frame)
 
-    fuerzas_frame = ttk.Frame(root, padding=10)
-    fuerzas_frame.pack(padx=10, pady=10)
+    fuerzas_frame = ttk.Frame(datos_frame, padding=10)
+    fuerzas_frame.grid(row=0, column=1, padx=5, pady=5, sticky="w")
 
     label_carga = ttk.Label(fuerzas_frame, text="Magnitud de la carga [N]:", anchor="w")
     label_carga.grid(row=0, column=0, padx=5, pady=5, sticky="w")
@@ -283,7 +316,7 @@ def seguir(ventana_principal):
         style="success.TButton", 
         command=agregar_fuerza
         )
-    boton_agregar.grid(row=2, column=0, columnspan=2, padx=10, pady=10)
+    boton_agregar.grid(row=0, column=3, columnspan=2, padx=10, pady=10)
 
     boton_borrar = ttk.Button(
         fuerzas_frame, 
@@ -291,7 +324,7 @@ def seguir(ventana_principal):
         style="danger.TButton", 
         command=borrar_fuerzas
         )
-    boton_borrar.grid(row=3, column=0, columnspan=2, padx=10, pady=10)
+    boton_borrar.grid(row=1, column=3, columnspan=2, padx=10, pady=10)
 
     boton_graficar = ttk.Button(
         fuerzas_frame, 
@@ -299,7 +332,14 @@ def seguir(ventana_principal):
         style="info.TButton", 
         command=obtener_datos
         )
-    boton_graficar.grid(row=4, column=0, columnspan=2, padx=10, pady=10)
+    boton_graficar.grid(row=2, column=0, columnspan=2, padx=5, pady=5)
 
+    resultados_frame = ttk.Frame(root, padding=10)
+    resultados_frame.pack(padx=10, pady=10, fill="both", expand=True)
+    label_resultados = ttk.Label(resultados_frame, text="Resultados:", anchor="w")
+    label_resultados.pack(anchor="w")
+
+    text_output = ScrolledText(resultados_frame, wrap="word", height=10, width=80)
+    text_output.pack(fill="both", expand=True)
     root.mainloop()
 
