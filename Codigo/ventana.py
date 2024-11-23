@@ -12,56 +12,8 @@ def seguir(ventana_principal):
         ventana_principal.deiconify() 
 
     longitud_viga = 10
-    datos = []  
-
-    def reacciones_simlemente_apoyada(fuerzas, longitud, x_apoyo_movil, x_apoyo_fijo):
-        R_A = 0.0
-        R_B = 0.0
-        
-        suma_fuerzas = sum([fuerza[0] for fuerza in fuerzas])
-        
-        suma_momentos = 0.0
-        for fuerza in fuerzas:
-            F = fuerza[0]
-            x = fuerza[1]
-            suma_momentos += F * x
-        
-        R_B = suma_momentos / longitud
-        
-        R_A = suma_fuerzas - R_B
-        
-        return [R_A, R_B]
-
-    def reacciones_voladizo(fuerzas, longitud):
-        R_A = 0.0
-        M_A = 0.0
-
-        for fuerza in fuerzas:
-            F = fuerza[0]  
-            x = fuerza[1] 
-            R_A += F
-            M_A += F * x
-
-        return [R_A, M_A]
-
-    def reacciones_empotrada(fuerzas, longitud):
-        R_A = 0.0
-        R_B = 0.0
-        M_A = 0.0
-        M_B = 0.0
-
-        suma_fuerzas = sum([fuerza[0] for fuerza in fuerzas])
-        
-        momento_total = sum([fuerza[0] * fuerza[1] for fuerza in fuerzas])
-        
-        M_A = -momento_total / 2
-        M_B = -M_A  
-        
-        R_B = (suma_fuerzas * longitud - 2 * M_A) / longitud
-        R_A = suma_fuerzas - R_B
-
-        return [R_A, R_B, M_A, M_B]
-
+    datos = [] 
+     
     def calcular_reacciones(tipo_viga, fuerzas, longitud, x_apoyo_movil=None, x_apoyo_fijo=None):
         if tipo_viga == "Simplemente apoyada":
             R_A, R_B = reacciones_simlemente_apoyada(fuerzas, longitud, x_apoyo_movil, x_apoyo_fijo)
@@ -127,7 +79,56 @@ def seguir(ventana_principal):
         plt.show()
 
     def obtener_datos():
-        global longitud_viga  
+    
+        def reacciones_simlemente_apoyada(fuerzas, longitud, x_apoyo_movil, x_apoyo_fijo):
+            R_A = 0.0
+            R_B = 0.0
+        
+            suma_fuerzas = sum([fuerza[0] for fuerza in fuerzas])
+        
+            suma_momentos = 0.0
+            for fuerza in fuerzas:
+                F = fuerza[0]
+                x = fuerza[1]
+                suma_momentos += F * x
+            
+            R_B = suma_momentos / longitud
+            
+            R_A = suma_fuerzas - R_B
+            
+            return [R_A, R_B]
+
+        def reacciones_voladizo(fuerzas, longitud):
+            R_A = 0.0
+            M_A = 0.0
+
+            for fuerza in fuerzas:
+                F = fuerza[0]  
+                x = fuerza[1] 
+                R_A += F
+                M_A += F * x
+
+            return [R_A, M_A]
+
+        def reacciones_empotrada(fuerzas, longitud):
+            R_A = 0.0
+            R_B = 0.0
+            M_A = 0.0
+            M_B = 0.0
+
+            suma_fuerzas = sum([fuerza[0] for fuerza in fuerzas])
+            
+            momento_total = sum([fuerza[0] * fuerza[1] for fuerza in fuerzas])
+            
+            M_A = -momento_total / 2
+            M_B = -M_A  
+            
+            R_B = (suma_fuerzas * longitud - 2 * M_A) / longitud
+            R_A = suma_fuerzas - R_B
+
+            return [R_A, R_B, M_A, M_B]
+        
+        global longitud_viga
 
         try:
             tipo_de_viga = tipo_viga_var.get()  
@@ -140,7 +141,6 @@ def seguir(ventana_principal):
 
             x_apoyo_pat, x_apoyo_fijo = None, None
             if tipo_de_viga == "Simplemente apoyada":
-                tipo_de_viga = "Simplemente apoyada"
                 x_apoyo_pat = float(entry_apoyo_pat.get())
                 x_apoyo_fijo = float(entry_apoyo_fijo.get())
                 if not (0 <= x_apoyo_pat <= longitud_viga) or not (0 <= x_apoyo_fijo <= longitud_viga):
@@ -154,20 +154,39 @@ def seguir(ventana_principal):
 
             datos_viga = f"Tipo de viga: {tipo_de_viga}\nLongitud de la viga: {longitud_viga} m\nMaterial: {material}\n\n"
             datos_fuerzas = "Fuerzas ingresadas:\n"
-            
+
             if not datos:
                 datos_fuerzas += "No se han ingresado fuerzas."
             else:
                 for fuerza in datos:
                     datos_fuerzas += f"Carga: {fuerza[0]} N, Coordenada x: {fuerza[1]} m\n"
-            
-            mensaje = datos_viga + datos_fuerzas
+
+            reacciones_mensaje = "\nReacciones en los apoyos:\n"
+            if tipo_de_viga == "Simplemente apoyada":
+                if x_apoyo_pat is not None and x_apoyo_fijo is not None:
+                    reacciones = reacciones_simlemente_apoyada(datos, longitud_viga, x_apoyo_pat, x_apoyo_fijo)
+                    reacciones_mensaje += f"Reacción en el apoyo móvil (R_A): {reacciones[0]:.2f} N\n"
+                    reacciones_mensaje += f"Reacción en el apoyo fijo (R_B): {reacciones[1]:.2f} N\n"
+            elif tipo_de_viga == "Viga en voladizo":
+                reacciones = reacciones_voladizo(datos, longitud_viga)
+                reacciones_mensaje += f"Reacción vertical en el apoyo (R_A): {reacciones[0]:.2f} N\n"
+                reacciones_mensaje += f"Momento en el apoyo (M_A): {reacciones[1]:.2f} N·m\n"
+            elif tipo_de_viga == "Doblemente empotrada":
+                reacciones = reacciones_empotrada(datos, longitud_viga)
+                reacciones_mensaje += f"Reacción en el apoyo izquierdo (R_A): {reacciones[0]:.2f} N\n"
+                reacciones_mensaje += f"Reacción en el apoyo derecho (R_B): {reacciones[1]:.2f} N\n"
+                reacciones_mensaje += f"Momento en el apoyo izquierdo (M_A): {reacciones[2]:.2f} N·m\n"
+                reacciones_mensaje += f"Momento en el apoyo derecho (M_B): {reacciones[3]:.2f} N·m\n"
+
+            mensaje = datos_viga + datos_fuerzas + reacciones_mensaje
             messagebox.showinfo("Datos de la Viga y Fuerzas", mensaje)
 
             mostrar_grafico(x_apoyo_fijo, x_apoyo_pat, tipo_de_viga)
 
         except ValueError as e:
             messagebox.showerror("Error", str(e))
+        except Exception as e:
+            messagebox.showerror("Error", f"Ocurrió un error: {str(e)}")
 
     def agregar_fuerza():
         try:
@@ -214,9 +233,6 @@ def seguir(ventana_principal):
             entry_apoyo_pat.grid_remove()
             label_apoyo_fijo.grid_remove()
             entry_apoyo_fijo.grid_remove()
-
-
-
 
     root = tk.Toplevel(ventana_principal) 
     root.title("Ingreso de Fuerzas y Datos de la Viga")
