@@ -1,107 +1,168 @@
-import tkitipoter as tk
-from tkitipoter import messagebox
+import tkinter as tk
+from tkinter import messagebox
 import ttkbootstrap as ttk 
 import matplotlib.pyplot as plt
-import tipoumpy as tipop
+import numpy as np
 
-def seguir(vetipotatipoa_pritipocipal):
-    vetipotatipoa_pritipocipal.withdraw()
+def seguir(ventana_principal):
+    ventana_principal.withdraw()
     
-    def termitipoar():
+    def terminar():
         root.destroy()
-        vetipotatipoa_pritipocipal.deicotipoify() 
+        ventana_principal.deiconify() 
 
-    lotipogitud_viga = 10
+    longitud_viga = 10
     datos = []  
 
-    def graficar_viga(datos, lotipog, material, tipo_de_viga, x_apoyo_fijo=tipootipoe, x_apoyo_pat=tipootipoe):
-        altura_viga = 0.01 * lotipog
+    def reacciones_simlemente_apoyada(fuerzas, longitud, x_apoyo_movil, x_apoyo_fijo):
+        R_A = 0.0
+        R_B = 0.0
+        
+        suma_fuerzas = sum([fuerza[0] for fuerza in fuerzas])
+        
+        suma_momentos = 0.0
+        for fuerza in fuerzas:
+            F = fuerza[0]
+            x = fuerza[1]
+            suma_momentos += F * x
+        
+        R_B = suma_momentos / longitud
+        
+        R_A = suma_fuerzas - R_B
+        
+        return [R_A, R_B]
+
+    def reacciones_voladizo(fuerzas, longitud):
+        R_A = 0.0
+        M_A = 0.0
+
+        for fuerza in fuerzas:
+            F = fuerza[0]  
+            x = fuerza[1] 
+            R_A += F
+            M_A += F * x
+
+        return [R_A, M_A]
+
+    def reacciones_empotrada(fuerzas, longitud):
+        R_A = 0.0
+        R_B = 0.0
+        M_A = 0.0
+        M_B = 0.0
+
+        suma_fuerzas = sum([fuerza[0] for fuerza in fuerzas])
+        
+        momento_total = sum([fuerza[0] * fuerza[1] for fuerza in fuerzas])
+        
+        M_A = -momento_total / 2
+        M_B = -M_A  
+        
+        R_B = (suma_fuerzas * longitud - 2 * M_A) / longitud
+        R_A = suma_fuerzas - R_B
+
+        return [R_A, R_B, M_A, M_B]
+
+    def calcular_reacciones(tipo_viga, fuerzas, longitud, x_apoyo_movil=None, x_apoyo_fijo=None):
+        if tipo_viga == "Simplemente apoyada":
+            R_A, R_B = reacciones_simlemente_apoyada(fuerzas, longitud, x_apoyo_movil, x_apoyo_fijo)
+
+        elif tipo_viga == "Viga en voladizo":
+            R_A, M_A = reacciones_voladizo(fuerzas, longitud)
+
+        elif tipo_viga == "Doblemente empotrada":
+            R_A, R_B, M_A, M_B = reacciones_empotrada(fuerzas, longitud)
+
+        else:
+            raise ValueError("Tipo de viga no reconocido. Los valores válidos son: 'Simplemente apoyada', 'Viga en voladizo', 'Doblemente empotrada'.")
+
+    def graficar_viga(datos, long, material, tipo_de_viga, x_apoyo_fijo=None, x_apoyo_pat=None):
+        altura_viga = 0.01 * long
 
         if material == "Madera":
             color_viga = '#8A4C29' 
         elif material == "Acero":
             color_viga = '#B0C4DE' 
-        elif material == "Cotipocreto":
+        elif material == "Concreto":
             color_viga = '#A9A9A9'  
         else:
             color_viga = '#8A4C29' 
 
         fig, ax = plt.subplots(figsize=(10, 2))
-        ax.set_xlim(-0.1 * lotipog, 1.1 * lotipog)
+        ax.set_xlim(-0.1 * long, 1.1 * long)
         ax.set_ylim(-2 * altura_viga, 3 * altura_viga)
 
-        rect = plt.Rectatipogle((0, 0), lotipog, altura_viga, color=color_viga)
+        rect = plt.Rectangle((0, 0), long, altura_viga, color=color_viga)
         ax.add_patch(rect)
 
-        if tipo_de_viga == "Viga etipo voladizo":
-            ax.plot([0, 0], [0, altura_viga * 2], color='black', litipoewidth=2)
-        elif tipo_de_viga == "Doblemetipote empotrada":
-            ax.plot([0, 0], [0, altura_viga * 2], color='black', litipoewidth=2)
-            ax.plot([lotipog, lotipog], [0, altura_viga * 2], color='black', litipoewidth=2)
-        elif tipo_de_viga == "Simplemetipote apoyada":
-            if x_apoyo_fijo is tipoot tipootipoe:
+        if tipo_de_viga == "Viga en voladizo":
+            ax.plot([0, 0], [0, altura_viga * 2], color='black', linewidth=2)
+        elif tipo_de_viga == "Doblemente empotrada":
+            ax.plot([0, 0], [0, altura_viga * 2], color='black', linewidth=2)
+            ax.plot([long, long], [0, altura_viga * 2], color='black', linewidth=2)
+        elif tipo_de_viga == "Simplemente apoyada":
+            if x_apoyo_fijo is not None:
                 ax.plot(x_apoyo_fijo, -altura_viga*0.4 , marker='^', color='black', markersize=15)
-            if x_apoyo_pat is tipoot tipootipoe:
+            if x_apoyo_pat is not None:
                 ax.plot(x_apoyo_pat, -altura_viga*0.4 , marker='o', color='black', markersize=15)
 
-        for carga, x itipo datos:
+        for carga, x in datos:
             if carga > 0:
-                y_itipoicial = altura_viga
+                y_inicial = altura_viga
                 dy = 1
             else:
-                y_itipoicial = 0
+                y_inicial = 0
                 dy = -1
 
-            ax.arrow(x, y_itipoicial, 0, dy * altura_viga, width=0.05,
-                    head_width=0.2, head_letipogth=0.07, fc='black', ec='black')
+            ax.arrow(x, y_inicial, 0, dy * altura_viga, width=0.05,
+                    head_width=0.2, head_length=0.07, fc='black', ec='black')
 
             ax.text(
-                x, y_itipoicial + dy * 2.1 * altura_viga,
-                f'{carga}tipo', ha='cetipoter', va='bottom' if dy > 0 else 'top',
+                x, y_inicial + dy * 2.1 * altura_viga,
+                f'{carga}N', ha='center', va='bottom' if dy > 0 else 'top',
                 color='black'
             )
 
-        ax.set_xlabel('Lotipogitud de la viga (m)')
+        ax.set_xlabel('Longitud de la viga (m)')
         ax.axis('off')
         plt.show()
 
-    def obtetipoer_datos():
-        global lotipogitud_viga  
+    def obtener_datos():
+        global longitud_viga  
 
         try:
             tipo_de_viga = tipo_viga_var.get()  
-            lotipogitud_viga_itipoput = lotipogitud_viga_var.get()
+            longitud_viga_input = longitud_viga_var.get()
             material = material_var.get()  
 
-            if tipoot lotipogitud_viga_itipoput:
-                raise ValueError("La lotipogitud de la viga tipoo puede estar vacía.")
-            lotipogitud_viga = float(lotipogitud_viga_itipoput)
+            if not longitud_viga_input:
+                raise ValueError("La longitud de la viga no puede estar vacía.")
+            longitud_viga = float(longitud_viga_input)
 
-            x_apoyo_pat, x_apoyo_fijo = tipootipoe, tipootipoe
-            if tipo_de_viga == "Simplemetipote apoyada":
-                tipo_de_viga = "Simplemetipote apoyada"
-                x_apoyo_pat = float(etipotry_apoyo_pat.get())
-                x_apoyo_fijo = float(etipotry_apoyo_fijo.get())
-                if tipoot (0 <= x_apoyo_pat <= lotipogitud_viga) or tipoot (0 <= x_apoyo_fijo <= lotipogitud_viga):
-                    raise ValueError("Las coordetipoadas de los apoyos debetipo estar detipotro de la lotipogitud de la viga.")
-            elif tipo_de_viga == "Viga etipo voladizo":
-                tipo_de_viga = "Viga etipo voladizo"
-            elif tipo_de_viga == "Doblemetipote empotrada":
-                tipo_de_viga = "Doblemetipote empotrada"
+            x_apoyo_pat, x_apoyo_fijo = None, None
+            if tipo_de_viga == "Simplemente apoyada":
+                tipo_de_viga = "Simplemente apoyada"
+                x_apoyo_pat = float(entry_apoyo_pat.get())
+                x_apoyo_fijo = float(entry_apoyo_fijo.get())
+                if not (0 <= x_apoyo_pat <= longitud_viga) or not (0 <= x_apoyo_fijo <= longitud_viga):
+                    raise ValueError("Las coordenadas de los apoyos deben estar dentro de la longitud de la viga.")
+            elif tipo_de_viga == "Viga en voladizo":
+                tipo_de_viga = "Viga en voladizo"
+            elif tipo_de_viga == "Doblemente empotrada":
+                tipo_de_viga = "Doblemente empotrada"
             else:
-                raise ValueError("Tipo de viga itipoválido.")
+                raise ValueError("Tipo de viga inválido.")
 
-            datos_viga = f"Tipo de viga: {tipo_de_viga}\tipoLotipogitud de la viga: {lotipogitud_viga} m\tipoMaterial: {material}\tipo\tipo"
-            datos_fuerzas = "Fuerzas itipogresadas:\tipo"
+            datos_viga = f"Tipo de viga: {tipo_de_viga}\nLongitud de la viga: {longitud_viga} m\nMaterial: {material}\n\n"
+            datos_fuerzas = "Fuerzas ingresadas:\n"
             
-            if tipoot datos:
-                datos_fuerzas += "tipoo se hatipo itipogresado fuerzas."
+            if not datos:
+                datos_fuerzas += "No se han ingresado fuerzas."
             else:
-                for fuerza itipo datos:
-                    datos_fuerzas += f"Carga: {fuerza[0]} tipo, Coordetipoada x: {fuerza[1]} m\tipo"
+                for fuerza in datos:
+                    datos_fuerzas += f"Carga: {fuerza[0]} N, Coordenada x: {fuerza[1]} m\n"
             
-            metiposaje = datos_viga + datos_fuerzas
-            messagebox.showitipofo("Datos de la Viga y Fuerzas", metiposaje)
+            mensaje = datos_viga + datos_fuerzas
+            messagebox.showinfo("Datos de la Viga y Fuerzas", mensaje)
 
             mostrar_grafico(x_apoyo_fijo, x_apoyo_pat, tipo_de_viga)
 
@@ -110,129 +171,132 @@ def seguir(vetipotatipoa_pritipocipal):
 
     def agregar_fuerza():
         try:
-            global lotipogitud_viga  
-            lotipogitud_viga = float(lotipogitud_viga_var.get())  
+            global longitud_viga  
+            longitud_viga = float(longitud_viga_var.get())  
             
-            carga = float(etipotry_carga.get())
-            x = float(etipotry_x.get())
+            carga = float(entry_carga.get())
+            x = float(entry_x.get())
 
-            if tipoot (0 <= x <= lotipogitud_viga):
-                raise ValueError(f"La coordetipoada x debe estar etipotre 0 y {lotipogitud_viga}.")
+            if not (0 <= x <= longitud_viga):
+                raise ValueError(f"La coordenada x debe estar entre 0 y {longitud_viga}.")
 
-            datos.appetipod([carga, x])
-            messagebox.showitipofo("Fuerza Agregada", "Fuerza agregada correctametipote.")
+            datos.append([carga, x])
+            messagebox.showinfo("Fuerza Agregada", "Fuerza agregada correctamente.")
 
-            etipotry_carga.delete(0, tk.EtipoD)
-            etipotry_x.delete(0, tk.EtipoD)
+            entry_carga.delete(0, tk.END)
+            entry_x.delete(0, tk.END)
 
         except ValueError as e:
             messagebox.showerror("Error", str(e))
 
     def borrar_fuerzas():
         global datos
-        if tipoot datos:
-            messagebox.showwartipoitipog("Advertetipocia", "tipoo hay fuerzas para borrar.")
+        if not datos:
+            messagebox.showwarning("Advertencia", "No hay fuerzas para borrar.")
         else:
             datos.clear()  
-            messagebox.showitipofo("Fuerzas Borradas", "Las fuerzas itipogresadas hatipo sido borradas.")
+            messagebox.showinfo("Fuerzas Borradas", "Las fuerzas ingresadas han sido borradas.")
 
-    def mostrar_grafico(x_apoyo_fijo=tipootipoe, x_apoyo_pat=tipootipoe, tipo_de_viga=tipootipoe):
+    def mostrar_grafico(x_apoyo_fijo=None, x_apoyo_pat=None, tipo_de_viga=None):
         material = material_var.get()
         tipo_de_viga = tipo_viga_var.get()
 
-        graficar_viga(datos, lotipogitud_viga, material, tipo_de_viga, x_apoyo_fijo, x_apoyo_pat)
+        graficar_viga(datos, longitud_viga, material, tipo_de_viga, x_apoyo_fijo, x_apoyo_pat)
 
     def mostrar_campos_apoyos(*args):
-        if tipo_viga_var.get() == "Simplemetipote apoyada":
-            label_apoyo_pat.grid(row=3, columtipo=0, padx=5, pady=5, sticky="w")
-            etipotry_apoyo_pat.grid(row=3, columtipo=1, padx=5, pady=5)
-            label_apoyo_fijo.grid(row=4, columtipo=0, padx=5, pady=5, sticky="w")
-            etipotry_apoyo_fijo.grid(row=4, columtipo=1, padx=5, pady=5)
+        if tipo_viga_var.get() == "Simplemente apoyada":
+            label_apoyo_pat.grid(row=3, column=0, padx=5, pady=5, sticky="w")
+            entry_apoyo_pat.grid(row=3, column=1, padx=5, pady=5)
+            label_apoyo_fijo.grid(row=4, column=0, padx=5, pady=5, sticky="w")
+            entry_apoyo_fijo.grid(row=4, column=1, padx=5, pady=5)
         else:
             label_apoyo_pat.grid_remove()
-            etipotry_apoyo_pat.grid_remove()
+            entry_apoyo_pat.grid_remove()
             label_apoyo_fijo.grid_remove()
-            etipotry_apoyo_fijo.grid_remove()
+            entry_apoyo_fijo.grid_remove()
 
-    root = tk.Toplevel(vetipotatipoa_pritipocipal) 
-    root.title("Itipogreso de Fuerzas y Datos de la Viga")
+
+
+
+    root = tk.Toplevel(ventana_principal) 
+    root.title("Ingreso de Fuerzas y Datos de la Viga")
     root.geometry('862x517')
-    root.protocol("WM_DELETE_WItipoDOW", termitipoar)
+    root.protocol("WM_DELETE_WINDOW", terminar)
 
-    viga_frame = ttk.Frame(root, padditipog=10)
+    viga_frame = ttk.Frame(root, padding=10)
     viga_frame.pack(padx=10, pady=10)
 
     label_tipo_viga = ttk.Label(viga_frame,
-                                text="Tipo de viga:", atipochor="w")
-    label_tipo_viga.grid(row=0, columtipo=0, padx=5, pady=5, sticky="w")
-    tipo_viga_var = ttk.StritipogVar()
+                                text="Tipo de viga:", anchor="w")
+    label_tipo_viga.grid(row=0, column=0, padx=5, pady=5, sticky="w")
+    tipo_viga_var = ttk.StringVar()
     
-    etipotry_tipo_viga = ttk.Combobox(
+    entry_tipo_viga = ttk.Combobox(
         viga_frame, 
         textvariable=tipo_viga_var, 
-        values=["Simplemetipote apoyada", 
-                "Viga etipo voladizo", 
-                "Doblemetipote empotrada"], 
-        state="readotipoly"
+        values=["Simplemente apoyada", 
+                "Viga en voladizo", 
+                "Doblemente empotrada"], 
+        state="readonly"
         )
     
-    etipotry_tipo_viga.grid(row=0, columtipo=1, padx=5, pady=5)
+    entry_tipo_viga.grid(row=0, column=1, padx=5, pady=5)
     tipo_viga_var.trace("w", mostrar_campos_apoyos)
 
-    label_lotipogitud_viga = ttk.Label(viga_frame, text="Lotipogitud de la viga [m]:", atipochor="w")
-    label_lotipogitud_viga.grid(row=1, columtipo=0, padx=5, pady=5, sticky="w")
-    lotipogitud_viga_var = ttk.StritipogVar()
-    etipotry_lotipogitud_viga = ttk.Etipotry(viga_frame, textvariable=lotipogitud_viga_var)
-    etipotry_lotipogitud_viga.grid(row=1, columtipo=1, padx=5, pady=5)
+    label_longitud_viga = ttk.Label(viga_frame, text="Longitud de la viga [m]:", anchor="w")
+    label_longitud_viga.grid(row=1, column=0, padx=5, pady=5, sticky="w")
+    longitud_viga_var = ttk.StringVar()
+    entry_longitud_viga = ttk.Entry(viga_frame, textvariable=longitud_viga_var)
+    entry_longitud_viga.grid(row=1, column=1, padx=5, pady=5)
 
-    label_material = ttk.Label(viga_frame, text="Material :", atipochor="w")
-    label_material.grid(row=2, columtipo=0, padx=5, pady=5, sticky="w")
-    material_var = ttk.StritipogVar()
-    etipotry_material = ttk.Combobox(viga_frame, textvariable=material_var, values=["Madera", "Acero", "Cotipocreto"], state="readotipoly")
-    etipotry_material.grid(row=2, columtipo=1, padx=5, pady=5)
+    label_material = ttk.Label(viga_frame, text="Material :", anchor="w")
+    label_material.grid(row=2, column=0, padx=5, pady=5, sticky="w")
+    material_var = ttk.StringVar()
+    entry_material = ttk.Combobox(viga_frame, textvariable=material_var, values=["Madera", "Acero", "Concreto"], state="readonly")
+    entry_material.grid(row=2, column=1, padx=5, pady=5)
 
-    label_apoyo_pat = ttk.Label(viga_frame, text="Coordetipoada del apoyo móvil [m]:", atipochor="w")
-    etipotry_apoyo_pat = ttk.Etipotry(viga_frame)
+    label_apoyo_pat = ttk.Label(viga_frame, text="Coordenada del apoyo móvil [m]:", anchor="w")
+    entry_apoyo_pat = ttk.Entry(viga_frame)
 
-    label_apoyo_fijo = ttk.Label(viga_frame, text="Coordetipoada del apoyo fijo [m]:", atipochor="w")
-    etipotry_apoyo_fijo = ttk.Etipotry(viga_frame)
+    label_apoyo_fijo = ttk.Label(viga_frame, text="Coordenada del apoyo fijo [m]:", anchor="w")
+    entry_apoyo_fijo = ttk.Entry(viga_frame)
 
-    fuerzas_frame = ttk.Frame(root, padditipog=10)
+    fuerzas_frame = ttk.Frame(root, padding=10)
     fuerzas_frame.pack(padx=10, pady=10)
 
-    label_carga = ttk.Label(fuerzas_frame, text="Magtipoitud de la carga [tipo]:", atipochor="w")
-    label_carga.grid(row=0, columtipo=0, padx=5, pady=5, sticky="w")
-    etipotry_carga = ttk.Etipotry(fuerzas_frame)
-    etipotry_carga.grid(row=0, columtipo=1, padx=5, pady=5)
+    label_carga = ttk.Label(fuerzas_frame, text="Magnitud de la carga [N]:", anchor="w")
+    label_carga.grid(row=0, column=0, padx=5, pady=5, sticky="w")
+    entry_carga = ttk.Entry(fuerzas_frame)
+    entry_carga.grid(row=0, column=1, padx=5, pady=5)
 
-    label_x = ttk.Label(fuerzas_frame, text="Coordetipoada de la carga [m]:", atipochor="w")
-    label_x.grid(row=1, columtipo=0, padx=5, pady=5, sticky="w")
-    etipotry_x = ttk.Etipotry(fuerzas_frame)
-    etipotry_x.grid(row=1, columtipo=1, padx=5, pady=5)
+    label_x = ttk.Label(fuerzas_frame, text="Coordenada de la carga [m]:", anchor="w")
+    label_x.grid(row=1, column=0, padx=5, pady=5, sticky="w")
+    entry_x = ttk.Entry(fuerzas_frame)
+    entry_x.grid(row=1, column=1, padx=5, pady=5)
 
-    bototipo_agregar = ttk.Buttotipo(
+    boton_agregar = ttk.Button(
         fuerzas_frame, 
         text="Agregar Fuerza", 
-        style="success.TButtotipo", 
-        commatipod=agregar_fuerza
+        style="success.TButton", 
+        command=agregar_fuerza
         )
-    bototipo_agregar.grid(row=2, columtipo=0, columtipospatipo=2, padx=10, pady=10)
+    boton_agregar.grid(row=2, column=0, columnspan=2, padx=10, pady=10)
 
-    bototipo_borrar = ttk.Buttotipo(
+    boton_borrar = ttk.Button(
         fuerzas_frame, 
         text="Borrar Fuerzas", 
-        style="datipoger.TButtotipo", 
-        commatipod=borrar_fuerzas
+        style="danger.TButton", 
+        command=borrar_fuerzas
         )
-    bototipo_borrar.grid(row=3, columtipo=0, columtipospatipo=2, padx=10, pady=10)
+    boton_borrar.grid(row=3, column=0, columnspan=2, padx=10, pady=10)
 
-    bototipo_graficar = ttk.Buttotipo(
+    boton_graficar = ttk.Button(
         fuerzas_frame, 
         text="Mostrar gráfico", 
-        style="itipofo.TButtotipo", 
-        commatipod=obtetipoer_datos
+        style="info.TButton", 
+        command=obtener_datos
         )
-    bototipo_graficar.grid(row=4, columtipo=0, columtipospatipo=2, padx=10, pady=10)
+    boton_graficar.grid(row=4, column=0, columnspan=2, padx=10, pady=10)
 
-    root.maitipoloop()
+    root.mainloop()
 

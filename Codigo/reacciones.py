@@ -53,7 +53,6 @@ def calcular_reacciones(tipo_viga, fuerzas, longitud, x_apoyo_movil=None, x_apoy
 
     elif tipo_viga == "Viga en voladizo":
         R_A, M_A = reacciones_voladizo(fuerzas, longitud)
-        print(R_A)
 
     elif tipo_viga == "Doblemente empotrada":
         R_A, R_B, M_A, M_B = reacciones_empotrada(fuerzas, longitud)
@@ -63,12 +62,5 @@ def calcular_reacciones(tipo_viga, fuerzas, longitud, x_apoyo_movil=None, x_apoy
 
 
 
-tipo = "Viga en voladizo"
-fuerzas = [[100, 5]] 
-longitud = 10  
-x_apoyo_movil = 0
-x_apoyo_fijo = 10
 
-reacciones = calcular_reacciones(tipo, fuerzas, longitud, x_apoyo_movil, x_apoyo_fijo)
-print(reacciones)
 
