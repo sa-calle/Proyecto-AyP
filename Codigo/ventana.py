@@ -310,6 +310,7 @@ def seguir(ventana_principal):
     global text_output 
     text_output = None
     canvas_anterior = None
+    
     root = tk.Toplevel(ventana_principal) 
     root.title("Ingreso de Fuerzas y Datos de la Viga")
     root.geometry('900x600')
@@ -318,6 +319,8 @@ def seguir(ventana_principal):
     
     frame_total = ttk.Frame(root)
     frame_total.pack(fill="both", expand=True)
+    
+    
     
     canvas = tk.Canvas(frame_total)
     barra = ttk.Scrollbar(
@@ -357,7 +360,14 @@ def seguir(ventana_principal):
         )
     
     entry_tipo_viga.grid(row=0, column=1, padx=5, pady=5)
+   
     tipo_viga_var.trace("w", mostrar_campos_apoyos)
+
+    label_apoyo_pat = ttk.Label(viga_frame, text="Coordenada del apoyo móvil [m]:", anchor="w")
+    entry_apoyo_pat = ttk.Entry(viga_frame)
+
+    label_apoyo_fijo = ttk.Label(viga_frame, text="Coordenada del apoyo fijo [m]:", anchor="w")
+    entry_apoyo_fijo = ttk.Entry(viga_frame)
 
     label_longitud_viga = ttk.Label(viga_frame, text="Longitud de la viga [m]:", anchor="w")
     label_longitud_viga.grid(row=1, column=0, padx=5, pady=5, sticky="w")
@@ -370,12 +380,6 @@ def seguir(ventana_principal):
     material_var = ttk.StringVar()
     entry_material = ttk.Combobox(viga_frame, textvariable=material_var, values=["Madera", "Acero", "Concreto"], state="readonly")
     entry_material.grid(row=2, column=1, padx=5, pady=5)
-
-    label_apoyo_pat = ttk.Label(viga_frame, text="Coordenada del apoyo móvil [m]:", anchor="w")
-    entry_apoyo_pat = ttk.Entry(viga_frame)
-
-    label_apoyo_fijo = ttk.Label(viga_frame, text="Coordenada del apoyo fijo [m]:", anchor="w")
-    entry_apoyo_fijo = ttk.Entry(viga_frame)
 
     fuerzas_frame = ttk.Frame(datos_frame, padding=10)
     fuerzas_frame.grid(row=0, column=1, padx=5, pady=5, sticky="w")
