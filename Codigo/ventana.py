@@ -11,13 +11,30 @@ def seguir(ventana_principal):
     ventana_principal.withdraw()
     
     def terminar():
-        root.destroy()
+        root.withdraw()
         ventana_principal.deiconify() 
     
     def graficar_viga(datos, long, material, tipo_de_viga, x_apoyo_fijo=None, x_apoyo_pat=None):
         global canvas_anterior
+        #--------------------------
+        if canvas_anterior is not None:
+            try:
+                canvas_anterior.get_tk_widget().destroy()
+            except Exception as e:
+                print(f"Error al destruir el gráfico anterior: {e}")
+            finally:
+                canvas_anterior = None 
+                
         altura_viga = 0.01 * long
-
+        ancho_ventana = resultados_frame.winfo_width()
+        if ancho_ventana == 1:
+            ancho_ventana = 860 
+        
+        escala_ancho = ancho_ventana / 100
+        figsize_ancho = max(5, escala_ancho) 
+        figsize_alto = 2
+        
+        
         if material == "Madera":
             color_viga = '#8A4C29' 
         elif material == "Acero":
@@ -65,14 +82,11 @@ def seguir(ventana_principal):
         ax.set_xlabel('Longitud de la viga (m)')
         ax.axis('off')
         ax.yaxis.set_visible(False)
-        if canvas_anterior is not None:
-            canvas_anterior.get_tk_widget().destroy()
-        if canvas_anterior is not None:
-            print("Eliminando el gráfico anterior...")
-            canvas_anterior.get_tk_widget().destroy()
+        
+
+
         canvas_anterior = FigureCanvasTkAgg(fig, master=resultados_frame)  
         canvas_anterior.draw()
-
         canvas_anterior.get_tk_widget().pack(pady=10, fill='none', expand=False)
 
     def obtener_datos():
@@ -89,7 +103,7 @@ def seguir(ventana_principal):
         except Exception as e:
             print(f"Error en obtener_datos: {e}")
         
-        def reacciones_simlemente_apoyada(fuerzas, longitud, x_apoyo_movil, x_apoyo_fijo):
+        def reacciones_simplemente_apoyada(fuerzas, longitud, x_apoyo_movil, x_apoyo_fijo):
             R_A = 0.0
             R_B = 0.0
         
@@ -140,20 +154,34 @@ def seguir(ventana_principal):
         global longitud_viga
 
         try:
-            tipo_de_viga = tipo_viga_var.get()  
+            tipo_de_viga = tipo_viga_var.get()
+            if not tipo_de_viga:
+                raise ValueError("Por favor, selecciona un tipo de viga antes de continuar.")  
             longitud_viga_input = longitud_viga_var.get()
             material = material_var.get()  
 
             if not longitud_viga_input:
                 raise ValueError("La longitud de la viga no puede estar vacía.")
-            longitud_viga = float(longitud_viga_input)
+            try:
+                longitud_viga = float(longitud_viga_input)
+                if longitud_viga <= 0 or longitud_viga >= 100:
+                    raise ValueError("La longitud de la viga debe ser mayor a 0 y menor a 100.")
+            except ValueError:
+                text_output.delete("1.0", "end")
+                text_output.insert("1.0", "Error: Por favor, introduce una longitud válida para la viga.\n")
+                return
+
 
             x_apoyo_pat, x_apoyo_fijo = None, None
             if tipo_de_viga == "Simplemente apoyada":
                 x_apoyo_pat = float(entry_apoyo_pat.get())
                 x_apoyo_fijo = float(entry_apoyo_fijo.get())
-                if not (0 <= x_apoyo_pat <= longitud_viga) or not (0 <= x_apoyo_fijo <= longitud_viga):
-                    raise ValueError("Las coordenadas de los apoyos deben estar dentro de la longitud de la viga.")
+
+                if not (0 <= x_apoyo_pat <= longitud_viga):
+                    raise ValueError(f"La coordenada del apoyo móvil debe estar entre 0 y {longitud_viga}.")
+                if not (0 <= x_apoyo_fijo <= longitud_viga):
+                    raise ValueError(f"La coordenada del apoyo fijo debe estar entre 0 y {longitud_viga}.")
+            
             elif tipo_de_viga == "Viga en voladizo":
                 tipo_de_viga = "Viga en voladizo"
             elif tipo_de_viga == "Doblemente empotrada":
@@ -174,7 +202,7 @@ def seguir(ventana_principal):
             reacciones_mensaje = "\nReacciones en los apoyos:\n"
             if tipo_de_viga == "Simplemente apoyada":
                 if x_apoyo_pat is not None and x_apoyo_fijo is not None:
-                    reacciones = reacciones_simlemente_apoyada(datos, longitud_viga, x_apoyo_pat, x_apoyo_fijo)
+                    reacciones = reacciones_simplemente_apoyada(datos, longitud_viga, x_apoyo_pat, x_apoyo_fijo)
                     reacciones_mensaje += f"Reacción en el apoyo móvil: {reacciones[0]:.2f} N\n"
                     reacciones_mensaje += f"Reacción en el apoyo fijo: {reacciones[1]:.2f} N\n"
             elif tipo_de_viga == "Viga en voladizo":
@@ -192,6 +220,9 @@ def seguir(ventana_principal):
             text_output.delete("1.0", "end") 
             text_output.insert("1.0", resultado)
 
+            if canvas_anterior is not None:
+                canvas_anterior.get_tk_widget().destroy()
+                            
             mostrar_grafico(x_apoyo_fijo, x_apoyo_pat, tipo_de_viga)
 
         except ValueError as e:
@@ -200,12 +231,21 @@ def seguir(ventana_principal):
         except Exception as e:
             text_output.delete("1.0", "end")
             text_output.insert("1.0", f"Ocurrió un error: {str(e)}")
-
+    
     def agregar_fuerza():
         try:
             global longitud_viga  
             longitud_viga = float(longitud_viga_var.get())  
             
+            try:
+                carga = float(entry_carga.get())
+                x = float(entry_x.get())
+                if not (0 <= x <= longitud_viga):
+                    raise ValueError(f"La coordenada x debe estar entre 0 y {longitud_viga}.")
+            except ValueError:
+                 messagebox.showerror("Error", "Por favor, ingresa valores numéricos válidos para la carga y su posición.")
+                 return
+                
             carga = float(entry_carga.get())
             x = float(entry_x.get())
 
@@ -222,7 +262,6 @@ def seguir(ventana_principal):
             messagebox.showerror("Error", str(e))
 
     def borrar_fuerzas():
-        global datos
         if not datos:
             messagebox.showwarning("Advertencia", "No hay fuerzas para borrar.")
         else:
@@ -230,9 +269,28 @@ def seguir(ventana_principal):
             messagebox.showinfo("Fuerzas Borradas", "Las fuerzas ingresadas han sido borradas.")
 
     def mostrar_grafico(x_apoyo_fijo=None, x_apoyo_pat=None, tipo_de_viga=None):
+        global longitud_viga
+        global canvas_anterior
+        if canvas_anterior:
+            try:
+                canvas_anterior.get_tk_widget().destroy()
+            except Exception as e:
+                print(f"Advertencia: {e}")
+            finally:
+                canvas_anterior = None
+
         material = material_var.get()
         tipo_de_viga = tipo_viga_var.get()
 
+        try:
+            longitud_viga = float(longitud_viga_var.get())
+            if longitud_viga <= 0 or longitud_viga >= 100 :
+                raise ValueError("La longitud de la viga debe ser mayor a 0 y menor a 100.")
+        except ValueError:
+            messagebox.showerror("Error", "Por favor, introduce una longitud válida para la viga.")
+            return
+
+        
         graficar_viga(datos, longitud_viga, material, tipo_de_viga, x_apoyo_fijo, x_apoyo_pat)
 
     def mostrar_campos_apoyos(*args):
@@ -250,20 +308,42 @@ def seguir(ventana_principal):
     longitud_viga = 10
     datos = [] 
     global text_output 
-    
+    text_output = None
+    canvas_anterior = None
     root = tk.Toplevel(ventana_principal) 
     root.title("Ingreso de Fuerzas y Datos de la Viga")
-    root.geometry('860x600')
-    ventana_principal.resizable(False, False) 
+    root.geometry('900x600')
+    root.resizable(False,False) 
     root.protocol("WM_DELETE_WINDOW", terminar)
-    datos_frame = ttk.Frame(root,padding=10)
+    
+    frame_total = ttk.Frame(root)
+    frame_total.pack(fill="both", expand=True)
+    
+    canvas = tk.Canvas(frame_total)
+    barra = ttk.Scrollbar(
+        frame_total,
+        orient='vertical',
+        command=canvas.yview)
+    
+    canvas.pack(side='left',fill='both',expand=True)
+    barra.pack(side='right',fill='y')
+    canvas.configure(yscrollcommand=barra.set)
+    
+    frame_barra = ttk.Frame(canvas)
+    canvas.create_window((0, 0), window=frame_barra, anchor="nw")
+    frame_barra.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
+    def _on_mousewheel(event):
+        canvas.yview_scroll(-1 * (event.delta // 120), "units")
+    canvas.bind_all("<MouseWheel>", _on_mousewheel)
+
+       
+    datos_frame = ttk.Frame(frame_barra,padding=10)
     datos_frame.pack(padx=10, pady=10)
     
     viga_frame = ttk.Frame(datos_frame, padding=10)
     viga_frame.grid(row=0, column=0, padx=5, pady=5, sticky="w")
 
-    label_tipo_viga = ttk.Label(viga_frame,
-                                text="Tipo de viga:", anchor="w")
+    label_tipo_viga = ttk.Label(viga_frame, text="Tipo de viga:", anchor="w")
     label_tipo_viga.grid(row=0, column=0, padx=5, pady=5, sticky="w")
     tipo_viga_var = ttk.StringVar()
     
@@ -334,12 +414,9 @@ def seguir(ventana_principal):
         )
     boton_graficar.grid(row=2, column=0, columnspan=2, padx=5, pady=5)
 
-    resultados_frame = ttk.Frame(root, padding=10)
-    resultados_frame.pack(padx=10, pady=10, fill="both", expand=True)
-    label_resultados = ttk.Label(resultados_frame, text="Resultados:", anchor="w")
-    label_resultados.pack(anchor="w")
-
-    text_output = ScrolledText(resultados_frame, wrap="word", height=10, width=80)
-    text_output.pack(fill="both", expand=True)
+    resultados_frame = ttk.Frame(frame_barra, padding=2, width=860, height=350)
+    resultados_frame.pack_propagate(False)  
+    resultados_frame.pack(padx=5, pady=10)
+    text_output = ScrolledText(resultados_frame, wrap="word", height=10, width=100)
+    text_output.pack(fill="x", pady=5)
     root.mainloop()
-

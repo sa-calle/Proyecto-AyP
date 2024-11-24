@@ -21,7 +21,8 @@ def cerrar():
 ventana_principal = ttk.Window(themename="flatly")
 ventana_principal.title("Cálculo de Vigas")
 ventana_principal.geometry('600x600')
-ventana_principal.resizable(False, False) 
+ventana_principal.resizable(False, False)
+ventana_principal.protocol("WM_DELETE_WINDOW", cerrar) 
 imagen_de_fondo(ventana_principal)
 boton_seguir = ttk.Button(
     ventana_principal,
