@@ -10,7 +10,7 @@ def imagen_de_fondo(ventana):
         ventana.fondo_imagen = ImageTk.PhotoImage(img)
         label_fondo = Label(
             ventana, 
-            image=ventana.fondo_imagen)
+            image=ventana.fondo_imagen) 
         label_fondo.place(x=0, y=0, relwidth=1, relheight=1)
     except FileNotFoundError:
         print("Error: No se encontró la imagen de fondo en la ruta especificada.")

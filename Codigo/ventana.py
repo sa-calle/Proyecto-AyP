@@ -5,7 +5,6 @@ import matplotlib.pyplot as plt
 from ttkbootstrap import ScrolledText
 import numpy as np
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-text_output = None
 
 def seguir(ventana_principal):
     ventana_principal.withdraw()
@@ -16,7 +15,8 @@ def seguir(ventana_principal):
     
     def graficar_viga(datos, long, material, tipo_de_viga, x_apoyo_fijo=None, x_apoyo_pat=None):
         global canvas_anterior
-        #--------------------------
+        global carga_distribuida
+
         if canvas_anterior is not None:
             try:
                 canvas_anterior.get_tk_widget().destroy()
@@ -48,7 +48,7 @@ def seguir(ventana_principal):
         ax.set_xlim(-0.1 * long, 1.1 * long)
         ax.set_ylim(-2 * altura_viga, 3 * altura_viga)
 
-        rect = plt.Rectangle((0, 0), long, altura_viga, color=color_viga)
+        rect = plt.Rectangle((0, 0), long, altura_viga, color=color_viga, zorder=1)
         ax.add_patch(rect)
 
         if tipo_de_viga == "Viga en voladizo":
@@ -61,6 +61,16 @@ def seguir(ventana_principal):
                 ax.plot(x_apoyo_fijo, -altura_viga*0.4 , marker='^', color='black', markersize=15)
             if x_apoyo_pat is not None:
                 ax.plot(x_apoyo_pat, -altura_viga*0.4 , marker='o', color='black', markersize=15)
+
+
+        if carga_distribuida is not None:
+            ax.fill_between(
+                [0, long], altura_viga,altura_viga+0.5, color="#F06644", alpha=0.3, zorder=0)
+            ax.text(
+                long / 2, altura_viga,
+                f'{carga_distribuida} N/m', ha='center', va='center', color='black', fontsize=10
+            )           
+            
 
         for carga, x in datos:
             if carga > 0:
@@ -93,6 +103,7 @@ def seguir(ventana_principal):
         global canvas_anterior
         canvas_anterior = None
         global text_output
+        global carga_distribuida
         try:
             if text_output:  
                 text_output.delete("1.0", "end") 
@@ -102,24 +113,43 @@ def seguir(ventana_principal):
                 raise RuntimeError("El widget ScrolledText no está definido.")
         except Exception as e:
             print(f"Error en obtener_datos: {e}")
-        
+              
         def reacciones_simplemente_apoyada(fuerzas, longitud, x_apoyo_movil, x_apoyo_fijo):
+
+            if not (0 <= x_apoyo_fijo <= longitud and 0 <= x_apoyo_movil <= longitud):
+                raise ValueError("Los apoyos deben estar dentro de la longitud de la viga.")
+
+            if x_apoyo_fijo == x_apoyo_movil:
+                raise ValueError("Los apoyos no pueden estar en la misma posición.")
+            
             R_A = 0.0
             R_B = 0.0
-        
-            suma_fuerzas = sum([fuerza[0] for fuerza in fuerzas])
-        
-            suma_momentos = 0.0
+            
+            suma_fuerzas = 0.0
+            suma_momentos_fijo = 0.0
+
             for fuerza in fuerzas:
-                F = fuerza[0]
-                x = fuerza[1]
-                suma_momentos += F * x
+                F, x = fuerza  
+
+                if x == x_apoyo_fijo:
+                    R_A += F
+                elif x == x_apoyo_movil:
+                    R_B += F
+                else:
+                    suma_momentos_fijo += F * (x - x_apoyo_fijo)
+
+                suma_fuerzas += F
+
+            distancia_entre_apoyos = x_apoyo_movil - x_apoyo_fijo
+            R_B += suma_momentos_fijo / distancia_entre_apoyos
+
+            R_A += suma_fuerzas - R_B
             
-            R_B = suma_momentos / longitud
-            
-            R_A = suma_fuerzas - R_B
-            
-            return [R_A, R_B]
+            momento = []
+            cortante = []
+            #momento,cortante = F_int_viga_1(-R_A, R_B, fuerzas, longitud)
+
+            return [-R_A, -R_B]
 
         def reacciones_voladizo(fuerzas, longitud):
             R_A = 0.0
@@ -191,7 +221,14 @@ def seguir(ventana_principal):
             
 
             datos_viga = f"Tipo de viga: {tipo_de_viga}\nLongitud de la viga: {longitud_viga} m\nMaterial: {material}\n\n"
+            
             datos_fuerzas = "Fuerzas ingresadas:\n"
+            
+            if carga_distribuida is not None:
+                datos_fuerzas += f'Carga distribuida: {carga_distribuida} N/m\n '
+            else:
+                text_output.insert("end", "No se ha definido ninguna carga distribuida.\n\n")
+            
 
             if not datos:
                 datos_fuerzas += "No se han ingresado fuerzas."
@@ -305,11 +342,48 @@ def seguir(ventana_principal):
             label_apoyo_fijo.grid_remove()
             entry_apoyo_fijo.grid_remove()
 
+    def abrir_ventana_carga_distribuida():
+        ventana_carga = tk.Toplevel()
+        ventana_carga.title("Agregar Carga Distribuida")
+        ventana_carga.geometry("200x150")
+        ventana_carga.resizable(False, False)
+
+        ttk.Label(ventana_carga, text="Magnitud de la carga [N/m]:").grid(row=0, column=0, padx=10, pady=10, sticky="w")
+        entry_magnitud = ttk.Entry(ventana_carga)
+        entry_magnitud.grid(row=1, column=0, padx=10, pady=10)
+
+        ttk.Button(
+            ventana_carga, 
+            text="Guardar", 
+            style="success.TButton", 
+            command=lambda: agregar_carga_distribuida(ventana_carga, entry_magnitud)
+        ).grid(row=2, column=0, columnspan=2, pady=20)
+
+    def agregar_carga_distribuida(ventana, entry_magnitud):
+        global carga_distribuida  
+
+        try:
+            magnitud = float(entry_magnitud.get())
+            if magnitud <= 0:
+                raise ValueError("La magnitud de la carga debe ser un número positivo.")
+
+            carga_distribuida = magnitud
+            messagebox.showinfo( f"Carga distribuida de {magnitud} N/m agregada correctamente.")
+            ventana.destroy()
+
+        except ValueError:
+            messagebox.showerror("Error", "Por favor, ingresa un valor válido para la magnitud.")
+
+    
+
     longitud_viga = 10
     datos = [] 
     global text_output 
     text_output = None
     canvas_anterior = None
+    global carga_distribuida
+    carga_distribuida = None
+
     
     root = tk.Toplevel(ventana_principal) 
     root.title("Ingreso de Fuerzas y Datos de la Viga")
@@ -326,14 +400,14 @@ def seguir(ventana_principal):
     barra = ttk.Scrollbar(
         frame_total,
         orient='vertical',
-        command=canvas.yview)
-    
+        command=canvas.yview)#!>Asocia la barra de desplazamiento al canvas, para que asi si se desplaza 
+                             #!la barra el contenido del camvas tambien lo haga
     canvas.pack(side='left',fill='both',expand=True)
     barra.pack(side='right',fill='y')
-    canvas.configure(yscrollcommand=barra.set)
-    
+    canvas.configure(yscrollcommand=barra.set)#!>Configura el Canvas para que su desplazamiento vertical 
+                                              #!>se sincronice con la barra de desplazamiento
     frame_barra = ttk.Frame(canvas)
-    canvas.create_window((0, 0), window=frame_barra, anchor="nw")
+    canvas.create_window((0, 0), window=frame_barra, anchor="nw")#!>crea una ventana dentro del canvas, el contenido de dicha ventana es frame_barra
     frame_barra.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
     def _on_mousewheel(event):
         canvas.yview_scroll(-1 * (event.delta // 120), "units")
@@ -416,9 +490,18 @@ def seguir(ventana_principal):
         style="info.TButton", 
         command=obtener_datos
         )
-    boton_graficar.grid(row=2, column=0, columnspan=2, padx=5, pady=5)
+    boton_graficar.grid(row=2, column=3, columnspan=2, padx=5, pady=5)
+
+    boton_carga_distribuida = ttk.Button(
+        fuerzas_frame, 
+        text="Agregar Carga Distribuida", 
+        style="success.TButton", 
+        command=abrir_ventana_carga_distribuida
+        )
+    boton_carga_distribuida.grid(row=2, column=0, columnspan=2, padx=5, pady=5)
 
     resultados_frame = ttk.Frame(frame_barra, padding=2, width=860, height=350)
+    #!---------------vvvvvvvvvvvvv----restringe al framr para que no se espanda segun el tamaño de su contenido
     resultados_frame.pack_propagate(False)  
     resultados_frame.pack(padx=5, pady=10)
     text_output = ScrolledText(resultados_frame, wrap="word", height=10, width=100)
