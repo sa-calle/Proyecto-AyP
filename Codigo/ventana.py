@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 from ttkbootstrap import ScrolledText
 import numpy as np
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from matplotlib.figure import Figure
 
 def seguir(ventana_principal):
     ventana_principal.withdraw()
@@ -15,16 +16,7 @@ def seguir(ventana_principal):
     
     def graficar_viga(datos, long, material, tipo_de_viga, x_apoyo_fijo=None, x_apoyo_pat=None):
         global canvas_anterior
-        global carga_distribuida
-
-        if canvas_anterior is not None:
-            try:
-                canvas_anterior.get_tk_widget().destroy()
-            except Exception as e:
-                print(f"Error al destruir el gráfico anterior: {e}")
-            finally:
-                canvas_anterior = None 
-                
+        global carga_distribuida         
         altura_viga = 0.01 * long
         ancho_ventana = resultados_frame.winfo_width()
         if ancho_ventana == 1:
@@ -149,7 +141,160 @@ def seguir(ventana_principal):
             cortante = []
             #momento,cortante = F_int_viga_1(-R_A, R_B, fuerzas, longitud)
 
-            return [-R_A, -R_B]
+            return [R_A, R_B]
+
+        def F_int_viga_1_v2(reac_A_y, reac_B_y, vector, carga_distribuida, long):
+            momento = []
+            cortante = []
+            paso = 0.01  
+
+            if not vector and carga_distribuida:
+                w = carga_distribuida
+                i = 0
+                while i <= long:
+                    M = reac_A_y * i - (w * i**2) / 2
+                    C = reac_A_y - w * i
+                    momento.append(M)
+                    cortante.append(C)
+                    i += paso
+                return momento, cortante
+
+            elif len(vector) == 1 and not carga_distribuida:
+                F, x = vector[0]
+                i = 0
+                while i <= long:
+                    if i <= x:
+                        M = reac_A_y * i
+                        C = reac_A_y
+                    else:  
+                        M = reac_A_y * i - F * (i - x)
+                        C = reac_A_y - F
+                    momento.append(M)
+                    cortante.append(C)
+                    i += paso
+                return momento, cortante
+
+            elif len(vector) == 1 and carga_distribuida:
+                F, x = vector[0]
+                w = carga_distribuida
+                i = 0
+                while i <= long:
+                    if i <= x:
+                        M = reac_A_y * i - (w * i**2) / 2
+                        C = reac_A_y - w * i
+                    else: 
+                        M = reac_A_y * i - (w * i**2) / 2 - F * (i - x)
+                        C = reac_A_y - w * i - F
+                    momento.append(M)
+                    cortante.append(C)
+                    i += paso
+                return momento, cortante
+
+            else:
+                print('No se pueden calcular las fuerzas internas')
+                return 0, 0       
+
+        def F_int_viga_2(M_A, reac_A_y, vector, carga_distribuida, long):
+            momento = []
+            cortante = []
+
+            if len(vector) == 0 and carga_distribuida is not None:
+                i = 0
+                while i <= long:
+                    M = M_A + reac_A_y * i 
+                    C = reac_A_y 
+                    if i <= long:
+                        M -= (carga_distribuida * i**2) / 2 
+                        C -= carga_distribuida * i  
+                    momento.append(M)
+                    cortante.append(C)
+                    i += 0.01
+                return momento, cortante
+
+
+            elif len(vector) == 1 and carga_distribuida is None:
+                i = 0
+                while i <= long:
+                    M = M_A + reac_A_y * i 
+                    C = reac_A_y  
+                    if i >= vector[0][1]:  
+                        M -= vector[0][0] * (i - vector[0][1])  
+                        C -= vector[0][0] 
+                    momento.append(M)
+                    cortante.append(C)
+                    i += 0.01
+                return momento, cortante
+
+            elif len(vector) == 1 and carga_distribuida is not None:
+                i = 0
+                while i <= long:
+                    M = M_A + reac_A_y * i  
+                    C = reac_A_y  
+                    if i >= vector[0][1]:  
+                        M -= vector[0][0] * (i - vector[0][1]) 
+                        C -= vector[0][0] 
+                    if i <= long:
+                        M -= (carga_distribuida * i**2) / 2  
+                        C -= carga_distribuida * i  
+                    momento.append(M)
+                    cortante.append(C)
+                    i += 0.01
+                return momento, cortante
+
+            else:
+                print('No se pueden calcular las fuerzas internas con estos datos.')
+                return 0, 0
+
+        def F_int_viga_3(M_A, M_B, reac_A_y, reac_B_y, vector, carga_distribuida, long):
+            momento = []
+            cortante = []
+
+            if vector and carga_distribuida is None:
+                carga, pos = vector[0]
+                i = 0
+                while i <= long:
+                    if i <= pos:
+                        M = M_A + reac_A_y * i
+                        C = reac_A_y
+                    else:
+                        M = -carga * (i - pos) + reac_A_y * i + M_A
+                        C = -carga + reac_A_y
+                    momento.append(M)
+                    cortante.append(C)
+                    i += 0.01
+                M_B *= -1
+                return momento, cortante, M_B
+
+            elif carga_distribuida is not None and not vector:
+                i = 0
+                while i <= long:
+                    M = M_A + reac_A_y * i - (carga_distribuida * i**2) / 2
+                    C = reac_A_y - carga_distribuida * i
+                    momento.append(M)
+                    cortante.append(C)
+                    i += 0.01
+                M_B *= -1
+                return momento, cortante, M_B
+
+            elif vector and carga_distribuida is not None:
+                carga, pos = vector[0]
+                i = 0
+                while i <= long:
+                    if i <= pos:
+                        M = M_A + reac_A_y * i - (carga_distribuida * i**2) / 2
+                        C = reac_A_y - carga_distribuida * i
+                    else:
+                        M = -carga * (i - pos) + reac_A_y * i - (carga_distribuida * i**2) / 2 + M_A
+                        C = -carga + reac_A_y - carga_distribuida * i
+                    momento.append(M)
+                    cortante.append(C)
+                    i += 0.01
+                M_B *= -1
+                return momento, cortante, M_B
+
+            else:
+                print('No se pueden calcular las fuerzas internas')
+                return 0, 0, 0
 
         def reacciones_voladizo(fuerzas, longitud):
             R_A = 0.0
@@ -182,7 +327,6 @@ def seguir(ventana_principal):
             return [R_A, R_B, M_A, M_B]
         
         global longitud_viga
-
         try:
             tipo_de_viga = tipo_viga_var.get()
             if not tipo_de_viga:
@@ -242,16 +386,42 @@ def seguir(ventana_principal):
                     reacciones = reacciones_simplemente_apoyada(datos, longitud_viga, x_apoyo_pat, x_apoyo_fijo)
                     reacciones_mensaje += f"Reacción en el apoyo móvil: {reacciones[0]:.2f} N\n"
                     reacciones_mensaje += f"Reacción en el apoyo fijo: {reacciones[1]:.2f} N\n"
+                    reac_A_y = reacciones[0]
+                    reac_B_y = reacciones[1]
+                if carga_distribuida is not None and ((x_apoyo_pat == 0 and x_apoyo_fijo == longitud_viga) or (x_apoyo_pat == longitud_viga and x_apoyo_fijo == 0)) :
+                    reacciones_mensaje =''
+                    reacciones_mensaje += f"Reacción en el apoyo móvil: {reacciones[0]+(carga_distribuida*longitud_viga)/2:.2f} N\n"
+                    reacciones_mensaje += f"Reacción en el apoyo fijo: {reacciones[1]+(carga_distribuida*longitud_viga)/2:.2f} N\n"
+                    
+                        
+                        
+                         
+                    
             elif tipo_de_viga == "Viga en voladizo":
                 reacciones = reacciones_voladizo(datos, longitud_viga)
                 reacciones_mensaje += f"Reacción en el empotramiento: {reacciones[0]:.2f} N\n"
                 reacciones_mensaje += f"Momento en el empotramiento: {reacciones[1]:.2f} N·m\n"
+                reac_A_y = reacciones[0]
+                M_A=0
+                if len(datos) == 1 and datos[0][0] > 0:
+                    momento,cortante = F_int_viga_2(M_A, reac_A_y, datos, carga_distribuida, longitud_viga)
+                    graficar_M_C(momento, cortante, Frame_momento,longitud_viga)
+                
+                
             elif tipo_de_viga == "Doblemente empotrada":
                 reacciones = reacciones_empotrada(datos, longitud_viga)
                 reacciones_mensaje += f"Reacción en el apoyo izquierdo: {reacciones[0]:.2f} N\n"
                 reacciones_mensaje += f"Reacción en el apoyo derecho: {reacciones[1]:.2f} N\n"
                 reacciones_mensaje += f"Momento en el apoyo izquierdo: {reacciones[2]:.2f} N·m\n"
                 reacciones_mensaje += f"Momento en el apoyo derecho: {reacciones[3]:.2f} N·m\n"
+                reac_A_y = reacciones[0]
+                reac_B_y = reacciones[1]
+                M_A=0
+                M_B=0
+                if len(datos) == 1 and datos[0][0] > 0:
+                    momento,cortante,m = F_int_viga_3(M_A, M_B, reac_A_y, reac_B_y, datos, carga_distribuida, longitud_viga)
+                    graficar_M_C(momento, cortante, Frame_momento,longitud_viga)
+                
 
             resultado = datos_viga + datos_fuerzas + reacciones_mensaje
             text_output.delete("1.0", "end") 
@@ -261,6 +431,33 @@ def seguir(ventana_principal):
                 canvas_anterior.get_tk_widget().destroy()
                             
             mostrar_grafico(x_apoyo_fijo, x_apoyo_pat, tipo_de_viga)
+            
+            if tipo_de_viga == "Simplemente apoyada":
+                if x_apoyo_pat is not None and x_apoyo_fijo is not None:
+                    reacciones = reacciones_simplemente_apoyada(datos, longitud_viga, x_apoyo_pat, x_apoyo_fijo)
+                    reac_A_y = reacciones[0] + ((longitud_viga*carga_distribuida)/2)
+                    reac_B_y = reacciones[1] + ((longitud_viga*carga_distribuida)/2)
+                if len(datos) == 1 and datos[0][0] > 0:
+                    if (x_apoyo_pat == 0 and x_apoyo_fijo == longitud_viga) or (x_apoyo_pat == longitud_viga and x_apoyo_fijo == 0):
+                        momento,cortante = F_int_viga_1_v2(reac_A_y, reac_B_y, datos, carga_distribuida, longitud_viga)
+                        graficar_M_C(momento, cortante, Frame_momento, longitud_viga)            
+            elif tipo_de_viga == "Viga en voladizo":
+                reacciones = reacciones_voladizo(datos, longitud_viga)
+                reac_A_y = reacciones[0]
+                M_A=0
+                if len(datos) == 1 and datos[0][0] > 0:
+                    momento,cortante = F_int_viga_2(M_A, reac_A_y, datos, carga_distribuida, longitud_viga)
+                    graficar_M_C(momento, cortante, Frame_momento,longitud_viga)    
+            elif tipo_de_viga == "Doblemente empotrada":
+                reacciones = reacciones_empotrada(datos, longitud_viga)
+                reac_A_y = reacciones[0]
+                reac_B_y = reacciones[1]
+                M_A=0
+                M_B=0
+                if len(datos) == 1 and datos[0][0] > 0:
+                    momento,cortante,m = F_int_viga_3(M_A, M_B, reac_A_y, reac_B_y, datos, carga_distribuida, longitud_viga)
+                    graficar_M_C(momento, cortante, Frame_momento,longitud_viga)
+
 
         except ValueError as e:
             text_output.delete("1.0", "end")
@@ -374,6 +571,37 @@ def seguir(ventana_principal):
         except ValueError:
             messagebox.showerror("Error", "Por favor, ingresa un valor válido para la magnitud.")
 
+    def graficar_M_C(Momento, Cortante, frame, long):
+
+
+        # Crear figura y ejes
+        fig = Figure(figsize=(12, 6))
+        x = [i * 0.01 for i in range(int(long / 0.01) + 1)]
+
+        # Gráfico de Momento flector
+        ax1 = fig.add_subplot(211)  # Primer gráfico
+        ax1.plot(x, Momento, label="Momento Flector", color="blue")
+        ax1.axhline(0, color='black', linewidth=0.8, linestyle='--')
+        ax1.set_title("Diagrama de Momento Flector")
+        ax1.set_ylabel("Momento Flector (N·m)")
+        ax1.grid(True)
+        ax1.legend()
+
+        # Gráfico de Fuerza cortante
+        ax2 = fig.add_subplot(212)  # Segundo gráfico
+        ax2.plot(x, Cortante, label="Cortante", color="red")
+        ax2.axhline(0, color='black', linewidth=0.8, linestyle='--')
+        ax2.set_xlabel("Longitud de la Viga (m)")
+        ax2.set_ylabel("Cortante (N)")
+        ax2.grid(True)
+        ax2.legend()
+
+        # Mostrar la figura en el Frame usando FigureCanvasTkAgg
+        canvas_anterior = FigureCanvasTkAgg(fig, master=frame)
+        canvas_anterior.draw()
+        canvas_anterior.get_tk_widget().pack(fill="both", expand=True)
+
+
     
 
     longitud_viga = 10
@@ -383,6 +611,8 @@ def seguir(ventana_principal):
     canvas_anterior = None
     global carga_distribuida
     carga_distribuida = None
+    canvas_anterior = None 
+    global Frame_momento
 
     
     root = tk.Toplevel(ventana_principal) 
@@ -506,4 +736,7 @@ def seguir(ventana_principal):
     resultados_frame.pack(padx=5, pady=10)
     text_output = ScrolledText(resultados_frame, wrap="word", height=10, width=100)
     text_output.pack(fill="x", pady=5)
+    Frame_momento = ttk.Frame(frame_barra, padding=2,width=860, height=350)
+    Frame_momento.pack_propagate(False) 
+    Frame_momento.pack(padx=5, pady=10)
     root.mainloop()

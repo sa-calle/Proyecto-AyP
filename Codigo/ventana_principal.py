@@ -4,9 +4,9 @@ import tkinter as tk
 import ttkbootstrap as ttk
 from PIL import Image, ImageTk
 
-def imagen_de_fondo(ventana):
+def imagen_de_fondo(ventana):   
     try:
-        img = Image.open("IMG/FONDO_2_4.png")  
+        img = Image.open("C:\proyecto\Codigo\FONDO_2_4.png")  
         ventana.fondo_imagen = ImageTk.PhotoImage(img)
         label_fondo = Label(
             ventana, 
@@ -18,7 +18,7 @@ def imagen_de_fondo(ventana):
 def cerrar():   
     ventana_principal.destroy()     
 
-ventana_principal = ttk.Window(themename="flatly")
+ventana_principal = ttk.Window(themename="flatly")  
 ventana_principal.title("Cálculo de Vigas")
 ventana_principal.geometry('600x600')
 ventana_principal.resizable(False, False)
@@ -33,13 +33,13 @@ boton_seguir = ttk.Button(
 )
 boton_seguir.place(relx=0.4, rely=0.95, anchor="center")  
 
-boton_salir = ttk.Button(
+boton_salir = ttk.Button(   
     ventana_principal,
     text="Salir",
     style="danger.TButton",
     command=cerrar,
     width=15 
-)
+)   
 boton_salir.place(relx=0.6, rely=0.95, anchor="center") 
 
 ventana_principal.mainloop()          
