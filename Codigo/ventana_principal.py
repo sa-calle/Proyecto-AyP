@@ -3,10 +3,10 @@ from tkinter import *
 import tkinter as tk
 import ttkbootstrap as ttk
 from PIL import Image, ImageTk
-
-def imagen_de_fondo(ventana):   
+    
+def imagen_de_fondo(ventana):           
     try:
-        img = Image.open("C:\proyecto\Codigo\FONDO_2_4.png")  
+        img = Image.open("C:\proyecto\Codigo\FONDO_2_4_3.png")  
         ventana.fondo_imagen = ImageTk.PhotoImage(img)
         label_fondo = Label(
             ventana, 
@@ -24,7 +24,7 @@ ventana_principal.geometry('600x600')
 ventana_principal.resizable(False, False)
 ventana_principal.protocol("WM_DELETE_WINDOW", cerrar) 
 imagen_de_fondo(ventana_principal)
-boton_seguir = ttk.Button(
+boton_seguir = ttk.Button(      
     ventana_principal,
     text="Seguir",
     style="success.TButton",

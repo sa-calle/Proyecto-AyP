@@ -9,7 +9,7 @@ from matplotlib.figure import Figure
 
 def seguir(ventana_principal):
     ventana_principal.withdraw()
-    
+     
     def terminar():
         root.withdraw()
         ventana_principal.deiconify() 
@@ -107,7 +107,9 @@ def seguir(ventana_principal):
             print(f"Error en obtener_datos: {e}")
               
         def reacciones_simplemente_apoyada(fuerzas, longitud, x_apoyo_movil, x_apoyo_fijo):
-
+            if x_apoyo_fijo is None or x_apoyo_movil is None:
+                raise ValueError("Ambos apoyos deben tener valores definidos.")
+            
             if not (0 <= x_apoyo_fijo <= longitud and 0 <= x_apoyo_movil <= longitud):
                 raise ValueError("Los apoyos deben estar dentro de la longitud de la viga.")
 
@@ -141,7 +143,7 @@ def seguir(ventana_principal):
             cortante = []
             #momento,cortante = F_int_viga_1(-R_A, R_B, fuerzas, longitud)
 
-            return [R_A, R_B]
+            return [-R_A, -R_B]
 
         def F_int_viga_1_v2(reac_A_y, reac_B_y, vector, carga_distribuida, long):
             momento = []
@@ -381,22 +383,67 @@ def seguir(ventana_principal):
                     datos_fuerzas += f"Carga: {fuerza[0]} N, Coordenada x: {fuerza[1]} m\n"
 
             reacciones_mensaje = "\nReacciones en los apoyos:\n"
+            
             if tipo_de_viga == "Simplemente apoyada":
-                if x_apoyo_pat is not None and x_apoyo_fijo is not None:
-                    reacciones = reacciones_simplemente_apoyada(datos, longitud_viga, x_apoyo_pat, x_apoyo_fijo)
-                    reacciones_mensaje += f"Reacción en el apoyo móvil: {reacciones[0]:.2f} N\n"
-                    reacciones_mensaje += f"Reacción en el apoyo fijo: {reacciones[1]:.2f} N\n"
-                    reac_A_y = reacciones[0]
-                    reac_B_y = reacciones[1]
-                if carga_distribuida is not None and ((x_apoyo_pat == 0 and x_apoyo_fijo == longitud_viga) or (x_apoyo_pat == longitud_viga and x_apoyo_fijo == 0)) :
-                    reacciones_mensaje =''
-                    reacciones_mensaje += f"Reacción en el apoyo móvil: {reacciones[0]+(carga_distribuida*longitud_viga)/2:.2f} N\n"
-                    reacciones_mensaje += f"Reacción en el apoyo fijo: {reacciones[1]+(carga_distribuida*longitud_viga)/2:.2f} N\n"
+                try:
+                    x_apoyo_pat = float(entry_apoyo_pat.get())
+                    x_apoyo_fijo = float(entry_apoyo_fijo.get())
+                except ValueError:
+                    raise ValueError("Debes ingresar valores numéricos para los apoyos.")
+
+                if not (0 <= x_apoyo_pat <= longitud_viga and 0 <= x_apoyo_fijo <= longitud_viga):
+                    raise ValueError("Los apoyos deben estar dentro de la longitud de la viga.")
+
+                if abs(x_apoyo_pat - x_apoyo_fijo) < 1e-6:
+                    raise ValueError("Los apoyos no pueden estar en la misma posición.")
+
+                reacciones = reacciones_simplemente_apoyada(datos, longitud_viga, x_apoyo_pat, x_apoyo_fijo)
+                reacciones_mensaje += f"Reacción en el apoyo móvil: {reacciones[0]:.2f} N\n"
+                reacciones_mensaje += f"Reacción en el apoyo fijo: {reacciones[1]:.2f} N\n"
+                reac_A_y = reacciones[0]
+                reac_B_y = reacciones[1]
+
+                if carga_distribuida is not None:
+                    try:
+                        carga_distribuida = float(carga_distribuida)
+                        if carga_distribuida <= 0:
+                            raise ValueError("La carga distribuida debe ser un número positivo.")
+                    except ValueError:
+                        raise ValueError("La carga distribuida debe ser un número válido.")
+
+                    if (x_apoyo_pat == 0 and x_apoyo_fijo == longitud_viga) or (x_apoyo_pat == longitud_viga and x_apoyo_fijo == 0):
+                        reac_A_y += (carga_distribuida * longitud_viga) / 2
+                        reac_B_y += (carga_distribuida * longitud_viga) / 2
+                        reacciones_mensaje = ''
+                        reacciones_mensaje += f"Reacción en el apoyo móvil : {reac_A_y:.2f} N\n"
+                        reacciones_mensaje += f"Reacción en el apoyo fijo : {reac_B_y:.2f} N\n"
+            
+            
+            
+                '''if tipo_de_viga == "Simplemente apoyada":
+                    x_apoyo_pat = float(entry_apoyo_pat.get() or 0)  
+                    x_apoyo_fijo = float(entry_apoyo_fijo.get() or 0)       
+                    if x_apoyo_pat is not None and x_apoyo_fijo is not None:
+                        if not (0 <= x_apoyo_pat <= longitud_viga and 0 <= x_apoyo_fijo <= longitud_viga):
+                            raise ValueError("Los apoyos deben estar dentro de la longitud de la viga.")
+                        if x_apoyo_pat == x_apoyo_fijo:
+                            raise ValueError("Los apoyos no pueden estar en la misma posición.")                   
+                        reacciones = reacciones_simplemente_apoyada(datos, longitud_viga, x_apoyo_pat, x_apoyo_fijo)
+                        reacciones_mensaje += f"Reacción en el apoyo móvil: {reacciones[0]:.2f} N\n"
+                        reacciones_mensaje += f"Reacción en el apoyo fijo: {reacciones[1]:.2f} N\n"
+                        reac_A_y = reacciones[0]
+                        reac_B_y = reacciones[1]
+                        if carga_distribuida is not None:
+                            if (x_apoyo_pat == 0 and x_apoyo_fijo == longitud_viga) or (x_apoyo_pat == longitud_viga and x_apoyo_fijo == 0):
+                                reac_A_y += (carga_distribuida * longitud_viga) / 2
+                                reac_B_y += (carga_distribuida * longitud_viga) / 2
+                                reacciones_mensaje =''
+                                reacciones_mensaje += f"Reacción en el apoyo móvil (con carga distribuida): {reac_A_y:.2f} N\n"
+                                reacciones_mensaje += f"Reacción en el apoyo fijo (con carga distribuida): {reac_B_y:.2f} N\n"
+                    else:
+                        raise ValueError("Debes especificar las posiciones de ambos apoyos para calcular las reacciones.")'''
                     
-                        
-                        
-                         
-                    
+    
             elif tipo_de_viga == "Viga en voladizo":
                 reacciones = reacciones_voladizo(datos, longitud_viga)
                 reacciones_mensaje += f"Reacción en el empotramiento: {reacciones[0]:.2f} N\n"
@@ -433,14 +480,17 @@ def seguir(ventana_principal):
             mostrar_grafico(x_apoyo_fijo, x_apoyo_pat, tipo_de_viga)
             
             if tipo_de_viga == "Simplemente apoyada":
-                if x_apoyo_pat is not None and x_apoyo_fijo is not None:
-                    reacciones = reacciones_simplemente_apoyada(datos, longitud_viga, x_apoyo_pat, x_apoyo_fijo)
-                    reac_A_y = reacciones[0] + ((longitud_viga*carga_distribuida)/2)
-                    reac_B_y = reacciones[1] + ((longitud_viga*carga_distribuida)/2)
-                if len(datos) == 1 and datos[0][0] > 0:
+                reacciones = reacciones_simplemente_apoyada(datos, longitud_viga, x_apoyo_pat, x_apoyo_fijo)
+                if (len(datos) == 1 and datos[0][0] < 0):
+                    datos[0][0] = abs(datos[0][0])     
                     if (x_apoyo_pat == 0 and x_apoyo_fijo == longitud_viga) or (x_apoyo_pat == longitud_viga and x_apoyo_fijo == 0):
                         momento,cortante = F_int_viga_1_v2(reac_A_y, reac_B_y, datos, carga_distribuida, longitud_viga)
-                        graficar_M_C(momento, cortante, Frame_momento, longitud_viga)            
+                        graficar_M_C(momento, cortante, Frame_momento, longitud_viga)
+                elif carga_distribuida is not None:
+                        momento,cortante = F_int_viga_1_v2(reac_A_y, reac_B_y, datos, carga_distribuida, longitud_viga)
+                        graficar_M_C(momento, cortante, Frame_momento, longitud_viga)                   
+                                             
+            
             elif tipo_de_viga == "Viga en voladizo":
                 reacciones = reacciones_voladizo(datos, longitud_viga)
                 reac_A_y = reacciones[0]
@@ -448,6 +498,7 @@ def seguir(ventana_principal):
                 if len(datos) == 1 and datos[0][0] > 0:
                     momento,cortante = F_int_viga_2(M_A, reac_A_y, datos, carga_distribuida, longitud_viga)
                     graficar_M_C(momento, cortante, Frame_momento,longitud_viga)    
+            
             elif tipo_de_viga == "Doblemente empotrada":
                 reacciones = reacciones_empotrada(datos, longitud_viga)
                 reac_A_y = reacciones[0]
@@ -573,13 +624,10 @@ def seguir(ventana_principal):
 
     def graficar_M_C(Momento, Cortante, frame, long):
 
-
-        # Crear figura y ejes
         fig = Figure(figsize=(12, 6))
         x = [i * 0.01 for i in range(int(long / 0.01) + 1)]
 
-        # Gráfico de Momento flector
-        ax1 = fig.add_subplot(211)  # Primer gráfico
+        ax1 = fig.add_subplot(211)
         ax1.plot(x, Momento, label="Momento Flector", color="blue")
         ax1.axhline(0, color='black', linewidth=0.8, linestyle='--')
         ax1.set_title("Diagrama de Momento Flector")
@@ -587,8 +635,7 @@ def seguir(ventana_principal):
         ax1.grid(True)
         ax1.legend()
 
-        # Gráfico de Fuerza cortante
-        ax2 = fig.add_subplot(212)  # Segundo gráfico
+        ax2 = fig.add_subplot(212) 
         ax2.plot(x, Cortante, label="Cortante", color="red")
         ax2.axhline(0, color='black', linewidth=0.8, linestyle='--')
         ax2.set_xlabel("Longitud de la Viga (m)")
@@ -596,13 +643,10 @@ def seguir(ventana_principal):
         ax2.grid(True)
         ax2.legend()
 
-        # Mostrar la figura en el Frame usando FigureCanvasTkAgg
         canvas_anterior = FigureCanvasTkAgg(fig, master=frame)
         canvas_anterior.draw()
         canvas_anterior.get_tk_widget().pack(fill="both", expand=True)
 
-
-    
 
     longitud_viga = 10
     datos = [] 
