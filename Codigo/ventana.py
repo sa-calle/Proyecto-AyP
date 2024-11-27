@@ -717,6 +717,7 @@ def seguir(ventana_principal):
     label_apoyo_fijo = ttk.Label(viga_frame, text="Coordenada del apoyo fijo [m]:", anchor="w")
     entry_apoyo_fijo = ttk.Entry(viga_frame)
 
+
     label_longitud_viga = ttk.Label(viga_frame, text="Longitud de la viga [m]:", anchor="w")
     label_longitud_viga.grid(row=1, column=0, padx=5, pady=5, sticky="w")
     longitud_viga_var = ttk.StringVar()
@@ -778,7 +779,21 @@ def seguir(ventana_principal):
     #!---------------vvvvvvvvvvvvv----restringe al framr para que no se espanda segun el tamaño de su contenido
     resultados_frame.pack_propagate(False)  
     resultados_frame.pack(padx=5, pady=10)
-    text_output = ScrolledText(resultados_frame, wrap="word", height=10, width=100)
+    text_output = ScrolledText(
+        resultados_frame,
+        wrap="word", 
+        height=10, 
+        width=100,
+        bg="#f8f9fa", 
+        fg="#212529", 
+        selectbackground="#d0e7ff",  
+        selectforeground="black",  
+        relief="ridge", 
+        borderwidth=2, 
+        font=("Helvetica", 12),  
+        padx=10, 
+        pady=10   
+    )
     text_output.pack(fill="x", pady=5)
     Frame_momento = ttk.Frame(frame_barra, padding=2,width=860, height=350)
     Frame_momento.pack_propagate(False) 
