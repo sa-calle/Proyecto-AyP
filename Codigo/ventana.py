@@ -68,18 +68,25 @@ def seguir(ventana_principal):
             if carga > 0:
                 y_inicial = altura_viga
                 dy = 1
+                ax.arrow(x, y_inicial, 0, dy * altura_viga, width=0.05,
+                        head_width=0.2, head_length=0.07, fc='black', ec='black')
+                ax.text(
+                    x, y_inicial + dy * 2.1 * altura_viga,
+                    f'{carga}N', ha='center', va='bottom' if dy > 0 else 'top',
+                    color='black'
+                )                
+                                
+                
             else:
-                y_inicial = 0
+                y_inicial = (2*altura_viga+0.07)
                 dy = -1
-
-            ax.arrow(x, y_inicial, 0, dy * altura_viga, width=0.05,
-                    head_width=0.2, head_length=0.07, fc='black', ec='black')
-
-            ax.text(
-                x, y_inicial + dy * 2.1 * altura_viga,
-                f'{carga}N', ha='center', va='bottom' if dy > 0 else 'top',
-                color='black'
-            )
+                ax.arrow(x, y_inicial, 0, dy * altura_viga, width=0.05,
+                        head_width=0.2, head_length=0.07, fc='black', ec='black')
+                ax.text(
+                    x, altura_viga + 2.1 * altura_viga,
+                    f'{carga}N', ha='center', va='bottom' if dy < 0 else 'top',
+                    color='black'
+                )                
         
         ax.set_xlabel('Longitud de la viga (m)')
         ax.axis('off')
