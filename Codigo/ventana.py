@@ -153,6 +153,37 @@ def seguir(ventana_principal):
 
             return [-R_A, -R_B]
 
+        def reacciones_voladizo(fuerzas, longitud):        
+            
+            R_A = 0.0
+            M_A = 0.0
+
+            for fuerza in fuerzas:
+                F = fuerza[0]  
+                x = fuerza[1] 
+                R_A += F
+                M_A += F * x
+
+            return [-R_A, M_A]
+
+        def reacciones_empotrada(fuerzas, longitud):        
+            R_A = 0.0
+            R_B = 0.0
+            M_A = 0.0
+            M_B = 0.0
+
+            suma_fuerzas = sum([fuerza[0] for fuerza in fuerzas])
+            
+            momento_total = sum([fuerza[0] * fuerza[1] for fuerza in fuerzas])
+            
+            M_A = -momento_total / 2
+            M_B = -M_A  
+            
+            R_B = (suma_fuerzas)/2
+            R_A = suma_fuerzas - R_B
+
+            return [-R_A, -R_B, M_A, M_B]
+  
         def F_int_viga_1_v2(reac_A_y, reac_B_y, vector, carga_distribuida, long):
             momento = []
             cortante = []
@@ -306,38 +337,7 @@ def seguir(ventana_principal):
             else:
                 print('No se pueden calcular las fuerzas internas')
                 return 0, 0, 0
-
-        def reacciones_voladizo(fuerzas, longitud):        
-            
-            R_A = 0.0
-            M_A = 0.0
-
-            for fuerza in fuerzas:
-                F = fuerza[0]  
-                x = fuerza[1] 
-                R_A += F
-                M_A += F * x
-
-            return [-R_A, M_A]
-
-        def reacciones_empotrada(fuerzas, longitud):        
-            R_A = 0.0
-            R_B = 0.0
-            M_A = 0.0
-            M_B = 0.0
-
-            suma_fuerzas = sum([fuerza[0] for fuerza in fuerzas])
-            
-            momento_total = sum([fuerza[0] * fuerza[1] for fuerza in fuerzas])
-            
-            M_A = -momento_total / 2
-            M_B = -M_A  
-            
-            R_B = (suma_fuerzas * longitud - 2 * M_A) / longitud
-            R_A = suma_fuerzas - R_B
-
-            return [R_A, R_B, M_A, M_B]
-        
+      
         global longitud_viga
         try:
             tipo_de_viga = tipo_viga_var.get()
@@ -381,7 +381,7 @@ def seguir(ventana_principal):
             datos_fuerzas = "Fuerzas ingresadas:\n"
             
             if carga_distribuida is not None:
-                datos_fuerzas += f'Carga distribuida: {carga_distribuida} N/m\n '
+                datos_fuerzas += f'Carga distribuida: {carga_distribuida} N/m\n'
             else:
                 text_output.insert("end", "No se ha definido ninguna carga distribuida.\n\n")
             
@@ -450,6 +450,7 @@ def seguir(ventana_principal):
                 if carga_distribuida is not None:
                     reac_A_y += carga_distribuida * longitud_viga
                     M_A = -(carga_distribuida * longitud_viga**2) / 2
+                    reacciones_mensaje += f""                           
                     reacciones_mensaje += f"Reacción en el empotramiento: {reac_A_y:.2f} N\n"
                     reacciones_mensaje += f"Momento en el empotramiento: {M_A:.2f} N·m\n"
 
@@ -467,11 +468,12 @@ def seguir(ventana_principal):
                     reacciones_mensaje += f"Momento en el apoyo izquierdo: {M_A:.2f} N·m\n"
                     reacciones_mensaje += f"Momento en el apoyo derecho: {M_B:.2f} N·m\n"
 
-                elif carga_distribuida is not None:
-                    reac_A_y = (carga_distribuida * longitud_viga) / 2
-                    reac_B_y = (carga_distribuida * longitud_viga) / 2
-                    M_A = -(carga_distribuida * longitud_viga**2) / 12
-                    M_B = (carga_distribuida * longitud_viga**2) / 12
+                if carga_distribuida is not None:
+                    reac_A_y += (carga_distribuida * longitud_viga) / 2
+                    reac_B_y += (carga_distribuida * longitud_viga) / 2
+                    M_A = -(carga_distribuida * longitud_viga**2) / 2
+                    M_B = (carga_distribuida * longitud_viga**2) / 2
+                    reacciones_mensaje += f""                    
                     reacciones_mensaje += f"Reacción en el apoyo izquierdo: {reac_A_y:.2f} N\n"
                     reacciones_mensaje += f"Reacción en el apoyo derecho: {reac_B_y:.2f} N\n"
                     reacciones_mensaje += f"Momento en el apoyo izquierdo: {M_A:.2f} N·m\n"
@@ -508,14 +510,10 @@ def seguir(ventana_principal):
                     graficar_M_C(momento, cortante, Frame_momento,longitud_viga)    
                 
                 elif tipo_de_viga == "Doblemente empotrada":
-                    reacciones = reacciones_empotrada(datos, longitud_viga)
-                    reac_A_y = reacciones[0]
-                    reac_B_y = reacciones[1]
                     M_A=0
-                    M_B=0
-                    if len(datos) == 1 and datos[0][0] > 0:
-                        momento,cortante,m = F_int_viga_3(M_A, M_B, reac_A_y, reac_B_y, datos, carga_distribuida, longitud_viga)
-                        graficar_M_C(momento, cortante, Frame_momento,longitud_viga)
+                    M_B=0   
+                    momento,cortante,m = F_int_viga_3(M_A, M_B, reac_A_y, reac_B_y, datos, carga_distribuida, longitud_viga)
+                    graficar_M_C(momento, cortante, Frame_momento,longitud_viga)
 
 
         except ValueError as e:
