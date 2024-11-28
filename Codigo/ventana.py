@@ -123,6 +123,7 @@ def seguir(ventana_principal):
             if x_apoyo_fijo == x_apoyo_movil:
                 raise ValueError("Los apoyos no pueden estar en la misma posición.")
             
+            
             R_A = 0.0
             R_B = 0.0
             
@@ -254,7 +255,8 @@ def seguir(ventana_principal):
                 print('No se pueden calcular las fuerzas internas con estos datos.')
                 return 0, 0
 
-        def F_int_viga_3(M_A, M_B, reac_A_y, reac_B_y, vector, carga_distribuida, long):
+        def F_int_viga_3(M_A, M_B, reac_A_y, reac_B_y, vector, carga_distribuida, long):            
+
             momento = []
             cortante = []
 
@@ -305,7 +307,8 @@ def seguir(ventana_principal):
                 print('No se pueden calcular las fuerzas internas')
                 return 0, 0, 0
 
-        def reacciones_voladizo(fuerzas, longitud):
+        def reacciones_voladizo(fuerzas, longitud):        
+            
             R_A = 0.0
             M_A = 0.0
 
@@ -315,9 +318,9 @@ def seguir(ventana_principal):
                 R_A += F
                 M_A += F * x
 
-            return [R_A, M_A]
+            return [-R_A, M_A]
 
-        def reacciones_empotrada(fuerzas, longitud):
+        def reacciones_empotrada(fuerzas, longitud):        
             R_A = 0.0
             R_B = 0.0
             M_A = 0.0
@@ -391,6 +394,8 @@ def seguir(ventana_principal):
 
             reacciones_mensaje = "\nReacciones en los apoyos:\n"
             
+            
+              
             if tipo_de_viga == "Simplemente apoyada":
                 try:
                     x_apoyo_pat = float(entry_apoyo_pat.get())
@@ -404,11 +409,25 @@ def seguir(ventana_principal):
                 if abs(x_apoyo_pat - x_apoyo_fijo) < 1e-6:
                     raise ValueError("Los apoyos no pueden estar en la misma posición.")
 
-                reacciones = reacciones_simplemente_apoyada(datos, longitud_viga, x_apoyo_pat, x_apoyo_fijo)
-                reacciones_mensaje += f"Reacción en el apoyo móvil: {reacciones[0]:.2f} N\n"
-                reacciones_mensaje += f"Reacción en el apoyo fijo: {reacciones[1]:.2f} N\n"
-                reac_A_y = reacciones[0]
-                reac_B_y = reacciones[1]
+                reac_A_y = 0
+                reac_B_y = 0
+
+
+                if datos:
+                    reacciones = reacciones_simplemente_apoyada(datos, longitud_viga, x_apoyo_pat, x_apoyo_fijo)
+                    reac_A_y, reac_B_y = reacciones
+                    reacciones_mensaje += f"Reacción en el apoyo móvil: {reac_A_y:.2f} N\n"
+                    reacciones_mensaje += f"Reacción en el apoyo fijo: {reac_B_y:.2f} N\n"
+
+
+                else:
+                    if carga_distribuida is not None:  
+                        reac_A_y = (carga_distribuida * longitud_viga) / 2
+                        reac_B_y = (carga_distribuida * longitud_viga) / 2
+                        reacciones_mensaje += f"Reacción en el apoyo móvil: {reac_A_y:.2f} N\n"
+                        reacciones_mensaje += f"Reacción en el apoyo fijo: {reac_B_y:.2f} N\n"
+                    else:  
+                        reacciones_mensaje += "No se han ingresado fuerzas ni cargas distribuidas.\n"
 
                 if carga_distribuida is not None:
                     try:
@@ -418,103 +437,85 @@ def seguir(ventana_principal):
                     except ValueError:
                         raise ValueError("La carga distribuida debe ser un número válido.")
 
-                    if (x_apoyo_pat == 0 and x_apoyo_fijo == longitud_viga) or (x_apoyo_pat == longitud_viga and x_apoyo_fijo == 0):
-                        reac_A_y += (carga_distribuida * longitud_viga) / 2
-                        reac_B_y += (carga_distribuida * longitud_viga) / 2
-                        reacciones_mensaje = ''
-                        reacciones_mensaje += f"Reacción en el apoyo móvil : {reac_A_y:.2f} N\n"
-                        reacciones_mensaje += f"Reacción en el apoyo fijo : {reac_B_y:.2f} N\n"
-            
-            
-            
-                '''if tipo_de_viga == "Simplemente apoyada":
-                    x_apoyo_pat = float(entry_apoyo_pat.get() or 0)  
-                    x_apoyo_fijo = float(entry_apoyo_fijo.get() or 0)       
-                    if x_apoyo_pat is not None and x_apoyo_fijo is not None:
-                        if not (0 <= x_apoyo_pat <= longitud_viga and 0 <= x_apoyo_fijo <= longitud_viga):
-                            raise ValueError("Los apoyos deben estar dentro de la longitud de la viga.")
-                        if x_apoyo_pat == x_apoyo_fijo:
-                            raise ValueError("Los apoyos no pueden estar en la misma posición.")                   
-                        reacciones = reacciones_simplemente_apoyada(datos, longitud_viga, x_apoyo_pat, x_apoyo_fijo)
-                        reacciones_mensaje += f"Reacción en el apoyo móvil: {reacciones[0]:.2f} N\n"
-                        reacciones_mensaje += f"Reacción en el apoyo fijo: {reacciones[1]:.2f} N\n"
-                        reac_A_y = reacciones[0]
-                        reac_B_y = reacciones[1]
-                        if carga_distribuida is not None:
-                            if (x_apoyo_pat == 0 and x_apoyo_fijo == longitud_viga) or (x_apoyo_pat == longitud_viga and x_apoyo_fijo == 0):
-                                reac_A_y += (carga_distribuida * longitud_viga) / 2
-                                reac_B_y += (carga_distribuida * longitud_viga) / 2
-                                reacciones_mensaje =''
-                                reacciones_mensaje += f"Reacción en el apoyo móvil (con carga distribuida): {reac_A_y:.2f} N\n"
-                                reacciones_mensaje += f"Reacción en el apoyo fijo (con carga distribuida): {reac_B_y:.2f} N\n"
-                    else:
-                        raise ValueError("Debes especificar las posiciones de ambos apoyos para calcular las reacciones.")'''
-                    
-    
             elif tipo_de_viga == "Viga en voladizo":
-                reacciones = reacciones_voladizo(datos, longitud_viga)
-                reacciones_mensaje += f"Reacción en el empotramiento: {reacciones[0]:.2f} N\n"
-                reacciones_mensaje += f"Momento en el empotramiento: {reacciones[1]:.2f} N·m\n"
-                reac_A_y = reacciones[0]
-                M_A=0
-                if len(datos) == 1 and datos[0][0] > 0:
-                    momento,cortante = F_int_viga_2(M_A, reac_A_y, datos, carga_distribuida, longitud_viga)
-                    graficar_M_C(momento, cortante, Frame_momento,longitud_viga)
-                
-                
+                reac_A_y = 0
+                M_A = 0
+
+                if datos:
+                    reacciones = reacciones_voladizo(datos, longitud_viga)
+                    reac_A_y, M_A = reacciones
+                    reacciones_mensaje += f"Reacción en el empotramiento: {reac_A_y:.2f} N\n"
+                    reacciones_mensaje += f"Momento en el empotramiento: {M_A:.2f} N·m\n"
+
+                if carga_distribuida is not None:
+                    reac_A_y += carga_distribuida * longitud_viga
+                    M_A = -(carga_distribuida * longitud_viga**2) / 2
+                    reacciones_mensaje += f"Reacción en el empotramiento: {reac_A_y:.2f} N\n"
+                    reacciones_mensaje += f"Momento en el empotramiento: {M_A:.2f} N·m\n"
+
             elif tipo_de_viga == "Doblemente empotrada":
-                reacciones = reacciones_empotrada(datos, longitud_viga)
-                reacciones_mensaje += f"Reacción en el apoyo izquierdo: {reacciones[0]:.2f} N\n"
-                reacciones_mensaje += f"Reacción en el apoyo derecho: {reacciones[1]:.2f} N\n"
-                reacciones_mensaje += f"Momento en el apoyo izquierdo: {reacciones[2]:.2f} N·m\n"
-                reacciones_mensaje += f"Momento en el apoyo derecho: {reacciones[3]:.2f} N·m\n"
-                reac_A_y = reacciones[0]
-                reac_B_y = reacciones[1]
-                M_A=0
-                M_B=0
-                if len(datos) == 1 and datos[0][0] > 0:
-                    momento,cortante,m = F_int_viga_3(M_A, M_B, reac_A_y, reac_B_y, datos, carga_distribuida, longitud_viga)
-                    graficar_M_C(momento, cortante, Frame_momento,longitud_viga)
-                
+                reac_A_y = 0
+                reac_B_y = 0
+                M_A = 0
+                M_B = 0
+
+                if datos:
+                    reacciones = reacciones_empotrada(datos, longitud_viga)
+                    reac_A_y, reac_B_y, M_A, M_B = reacciones
+                    reacciones_mensaje += f"Reacción en el apoyo izquierdo: {reac_A_y:.2f} N\n"
+                    reacciones_mensaje += f"Reacción en el apoyo derecho: {reac_B_y:.2f} N\n"
+                    reacciones_mensaje += f"Momento en el apoyo izquierdo: {M_A:.2f} N·m\n"
+                    reacciones_mensaje += f"Momento en el apoyo derecho: {M_B:.2f} N·m\n"
+
+                elif carga_distribuida is not None:
+                    reac_A_y = (carga_distribuida * longitud_viga) / 2
+                    reac_B_y = (carga_distribuida * longitud_viga) / 2
+                    M_A = -(carga_distribuida * longitud_viga**2) / 12
+                    M_B = (carga_distribuida * longitud_viga**2) / 12
+                    reacciones_mensaje += f"Reacción en el apoyo izquierdo: {reac_A_y:.2f} N\n"
+                    reacciones_mensaje += f"Reacción en el apoyo derecho: {reac_B_y:.2f} N\n"
+                    reacciones_mensaje += f"Momento en el apoyo izquierdo: {M_A:.2f} N·m\n"
+                    reacciones_mensaje += f"Momento en el apoyo derecho: {M_B:.2f} N·m\n"
 
             resultado = datos_viga + datos_fuerzas + reacciones_mensaje
-            text_output.delete("1.0", "end") 
+            text_output.delete("1.0", "end")
             text_output.insert("1.0", resultado)
 
+
+            resultado = datos_viga + datos_fuerzas + reacciones_mensaje
+            text_output.delete("1.0", "end")
+            text_output.insert("1.0", resultado)
+    
             if canvas_anterior is not None:
                 canvas_anterior.get_tk_widget().destroy()
                             
             mostrar_grafico(x_apoyo_fijo, x_apoyo_pat, tipo_de_viga)
             
-            if tipo_de_viga == "Simplemente apoyada":
-                reacciones = reacciones_simplemente_apoyada(datos, longitud_viga, x_apoyo_pat, x_apoyo_fijo)
-                if (len(datos) == 1 and datos[0][0] < 0):
-                    datos[0][0] = abs(datos[0][0])     
+            if ((len(datos) == 1 and datos[0][0] < 0) and carga_distribuida is None ) or ((len(datos) == 1 and datos[0][0] < 0) and carga_distribuida is not None ) or ((not datos) and (carga_distribuida is not None)):
+                
+                if datos:
+                    datos[0][0] = abs(datos[0][0])  
+                    
+                if tipo_de_viga == "Simplemente apoyada":
                     if (x_apoyo_pat == 0 and x_apoyo_fijo == longitud_viga) or (x_apoyo_pat == longitud_viga and x_apoyo_fijo == 0):
                         momento,cortante = F_int_viga_1_v2(reac_A_y, reac_B_y, datos, carga_distribuida, longitud_viga)
-                        graficar_M_C(momento, cortante, Frame_momento, longitud_viga)
-                elif carga_distribuida is not None:
-                        momento,cortante = F_int_viga_1_v2(reac_A_y, reac_B_y, datos, carga_distribuida, longitud_viga)
-                        graficar_M_C(momento, cortante, Frame_momento, longitud_viga)                   
-                                             
-            
-            elif tipo_de_viga == "Viga en voladizo":
-                reacciones = reacciones_voladizo(datos, longitud_viga)
-                reac_A_y = reacciones[0]
-                M_A=0
-                if len(datos) == 1 and datos[0][0] > 0:
+                        graficar_M_C(momento, cortante, Frame_momento, longitud_viga)             
+                                                
+                elif tipo_de_viga == "Viga en voladizo":
+                    M_A = 0
+                    reac_A_y = abs(reac_A_y)
                     momento,cortante = F_int_viga_2(M_A, reac_A_y, datos, carga_distribuida, longitud_viga)
                     graficar_M_C(momento, cortante, Frame_momento,longitud_viga)    
-            
-            elif tipo_de_viga == "Doblemente empotrada":
-                reacciones = reacciones_empotrada(datos, longitud_viga)
-                reac_A_y = reacciones[0]
-                reac_B_y = reacciones[1]
-                M_A=0
-                M_B=0
-                if len(datos) == 1 and datos[0][0] > 0:
-                    momento,cortante,m = F_int_viga_3(M_A, M_B, reac_A_y, reac_B_y, datos, carga_distribuida, longitud_viga)
-                    graficar_M_C(momento, cortante, Frame_momento,longitud_viga)
+                
+                elif tipo_de_viga == "Doblemente empotrada":
+                    reacciones = reacciones_empotrada(datos, longitud_viga)
+                    reac_A_y = reacciones[0]
+                    reac_B_y = reacciones[1]
+                    M_A=0
+                    M_B=0
+                    if len(datos) == 1 and datos[0][0] > 0:
+                        momento,cortante,m = F_int_viga_3(M_A, M_B, reac_A_y, reac_B_y, datos, carga_distribuida, longitud_viga)
+                        graficar_M_C(momento, cortante, Frame_momento,longitud_viga)
 
 
         except ValueError as e:
