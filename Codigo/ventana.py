@@ -63,7 +63,7 @@ def seguir(ventana_principal):
             ax_viga.fill_between(
                 [0, long], altura_viga,altura_viga+0.5, color="#F06644", alpha=0.3, zorder=0)
             ax_viga.text(
-                long / 2, altura_viga,
+                long / 2, altura_viga+(0.5*altura_viga),
                 f'{carga_distribuida} N/m', ha='center', va='center', color='black', fontsize=10
             )           
             
