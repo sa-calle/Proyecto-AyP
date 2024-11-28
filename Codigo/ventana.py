@@ -16,7 +16,8 @@ def seguir(ventana_principal):
     
     def graficar_viga(datos, long, material, tipo_de_viga, x_apoyo_fijo=None, x_apoyo_pat=None):
         global canvas_anterior
-        global carga_distribuida         
+        global carga_distribuida
+        global ax         
         altura_viga = 0.01 * long
         ancho_ventana = resultados_frame.winfo_width()
         if ancho_ventana == 1:
@@ -619,23 +620,39 @@ def seguir(ventana_principal):
         try:
             magnitud = float(entry_magnitud.get())
             if magnitud <= 0:
-                raise ValueError("La magnitud de la carga debe ser un número positivo.")
+                raise ValueError("Error","La magnitud de la carga debe ser un número positivo.")
 
             carga_distribuida = magnitud
-            messagebox.showinfo( f"Carga distribuida de {magnitud} N/m agregada correctamente.")
+            messagebox.showinfo( f"Carga distribuida",f"Carga distribuida de {magnitud} N/m agregada correctamente.")
             ventana.destroy()
 
         except ValueError:
             messagebox.showerror("Error", "Por favor, ingresa un valor válido para la magnitud.")
 
     def graficar_M_C(Momento, Cortante, frame, long):
+        global ax1
+        global ax2
+        global canvas_anterior
+        
+        
+        material = entry_material.get()
+        
+        if material == "Madera":
+            color_viga = '#8A4C29' 
+        elif material == "Acero":
+            color_viga = '#B0C4DE' 
+        elif material == "Concreto":
+            color_viga = '#A9A9A9'  
+        else:
+            color_viga = '#8A4C29' 
+        
 
         fig = Figure(figsize=(12, 6))
         x = [i * 0.01 for i in range(int(long / 0.01) + 1)]
 
         ax1 = fig.add_subplot(211)
         ax1.plot(x, Momento, label="Momento Flector", color="blue")
-        ax1.axhline(0, color='black', linewidth=0.8, linestyle='--')
+        ax1.axhline(0, color= color_viga, linewidth=5, linestyle='-')
         ax1.set_title("Diagrama de Momento Flector")
         ax1.set_ylabel("Momento Flector (N·m)")
         ax1.grid(True)
@@ -643,7 +660,7 @@ def seguir(ventana_principal):
 
         ax2 = fig.add_subplot(212) 
         ax2.plot(x, Cortante, label="Cortante", color="red")
-        ax2.axhline(0, color='black', linewidth=0.8, linestyle='--')
+        ax2.axhline(0, color=color_viga, linewidth=5, linestyle='-')
         ax2.set_xlabel("Longitud de la Viga (m)")
         ax2.set_ylabel("Cortante (N)")
         ax2.grid(True)
@@ -653,7 +670,13 @@ def seguir(ventana_principal):
         canvas_anterior.draw()
         canvas_anterior.get_tk_widget().pack(fill="both", expand=True)
 
+    def borrar_graficas():
+        global canvas_anterior
+        if canvas_anterior is not None:
+            canvas_anterior.get_tk_widget().destroy()
+            canvas_anterior = None 
 
+        
     longitud_viga = 10
     datos = [] 
     global text_output 
@@ -661,7 +684,6 @@ def seguir(ventana_principal):
     canvas_anterior = None
     global carga_distribuida
     carga_distribuida = None
-    canvas_anterior = None 
     global Frame_momento
 
     
@@ -801,7 +823,17 @@ def seguir(ventana_principal):
         pady=10   
     )
     text_output.pack(fill="x", pady=5)
-    Frame_momento = ttk.Frame(frame_barra, padding=2,width=860, height=350)
+    Frame_momento = ttk.Frame(frame_barra, padding=2,width=860, height=400)
     Frame_momento.pack_propagate(False) 
     Frame_momento.pack(padx=5, pady=10)
+    Frame_ultimos_botones = ttk.Frame(frame_barra, padding=2,width=860, height=50)
+    Frame_ultimos_botones.pack_propagate(False) 
+    Frame_ultimos_botones.pack(padx=5, pady=10)
+    boton_borrar = ttk.Button(   
+    Frame_ultimos_botones,
+    text="borrar graficas",
+    style="danger.TButton",
+    command=borrar_graficas,
+    width=15 )   
+    boton_borrar.place(relx=0.6, rely=0.95, anchor="center") 
     root.mainloop()
