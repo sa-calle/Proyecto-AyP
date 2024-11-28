@@ -3,13 +3,13 @@ from tkinter import *
 import tkinter as tk
 import ttkbootstrap as ttk
 from PIL import Image, ImageTk
-    
-def imagen_de_fondo(ventana):           
+        
+def imagen_de_fondo(ventana):                  
     try:
         img = Image.open("C:\proyecto\Codigo\FONDO_2_4_3.png")  
         ventana.fondo_imagen = ImageTk.PhotoImage(img)
-        label_fondo = Label(
-            ventana, 
+        label_fondo = Label(    
+            ventana,        
             image=ventana.fondo_imagen) 
         label_fondo.place(x=0, y=0, relwidth=1, relheight=1)
     except FileNotFoundError:

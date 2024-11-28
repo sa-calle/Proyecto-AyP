@@ -15,9 +15,12 @@ def seguir(ventana_principal):
         ventana_principal.deiconify() 
     
     def graficar_viga(datos, long, material, tipo_de_viga, x_apoyo_fijo=None, x_apoyo_pat=None):
-        global canvas_anterior
-        global carga_distribuida
-        global ax         
+        global canvas_viga, ax_viga
+
+        if canvas_viga is not None:
+            canvas_viga.get_tk_widget().destroy()
+            canvas_viga = None
+            
         altura_viga = 0.01 * long
         ancho_ventana = resultados_frame.winfo_width()
         if ancho_ventana == 1:
@@ -37,29 +40,29 @@ def seguir(ventana_principal):
         else:
             color_viga = '#8A4C29' 
 
-        fig, ax = plt.subplots(figsize=(10, 2))
-        ax.set_xlim(-0.1 * long, 1.1 * long)
-        ax.set_ylim(-2 * altura_viga, 3 * altura_viga)
+        fig_viga, ax_viga = plt.subplots(figsize=(10, 2))
+        ax_viga.set_xlim(-0.1 * long, 1.1 * long)
+        ax_viga.set_ylim(-2 * altura_viga, 3 * altura_viga)
 
         rect = plt.Rectangle((0, 0), long, altura_viga, color=color_viga, zorder=1)
-        ax.add_patch(rect)
+        ax_viga.add_patch(rect)
 
         if tipo_de_viga == "Viga en voladizo":
-            ax.plot([0, 0], [0, altura_viga * 2], color='black', linewidth=2)
+            ax_viga.plot([0, 0], [0, altura_viga * 2], color='black', linewidth=2)
         elif tipo_de_viga == "Doblemente empotrada":
-            ax.plot([0, 0], [0, altura_viga * 2], color='black', linewidth=2)
-            ax.plot([long, long], [0, altura_viga * 2], color='black', linewidth=2)
+            ax_viga.plot([0, 0], [0, altura_viga * 2], color='black', linewidth=2)
+            ax_viga.plot([long, long], [0, altura_viga * 2], color='black', linewidth=2)
         elif tipo_de_viga == "Simplemente apoyada":
             if x_apoyo_fijo is not None:
-                ax.plot(x_apoyo_fijo, -altura_viga*0.4 , marker='^', color='black', markersize=15)
+                ax_viga.plot(x_apoyo_fijo, -altura_viga*0.4 , marker='^', color='black', markersize=15)
             if x_apoyo_pat is not None:
-                ax.plot(x_apoyo_pat, -altura_viga*0.4 , marker='o', color='black', markersize=15)
+                ax_viga.plot(x_apoyo_pat, -altura_viga*0.4 , marker='o', color='black', markersize=15)
 
 
         if carga_distribuida is not None:
-            ax.fill_between(
+            ax_viga.fill_between(
                 [0, long], altura_viga,altura_viga+0.5, color="#F06644", alpha=0.3, zorder=0)
-            ax.text(
+            ax_viga.text(
                 long / 2, altura_viga,
                 f'{carga_distribuida} N/m', ha='center', va='center', color='black', fontsize=10
             )           
@@ -69,9 +72,9 @@ def seguir(ventana_principal):
             if carga > 0:
                 y_inicial = altura_viga
                 dy = 1
-                ax.arrow(x, y_inicial, 0, dy * altura_viga, width=0.05,
+                ax_viga.arrow(x, y_inicial, 0, dy * altura_viga, width=0.05,
                         head_width=0.2, head_length=0.07, fc='black', ec='black')
-                ax.text(
+                ax_viga.text(
                     x, y_inicial + dy * 2.1 * altura_viga,
                     f'{carga}N', ha='center', va='bottom' if dy > 0 else 'top',
                     color='black'
@@ -81,29 +84,30 @@ def seguir(ventana_principal):
             else:
                 y_inicial = (2*altura_viga+0.07)
                 dy = -1
-                ax.arrow(x, y_inicial, 0, dy * altura_viga, width=0.05,
+                ax_viga.arrow(x, y_inicial, 0, dy * altura_viga, width=0.05,
                         head_width=0.2, head_length=0.07, fc='black', ec='black')
-                ax.text(
+                ax_viga.text(
                     x, altura_viga + 2.1 * altura_viga,
                     f'{carga}N', ha='center', va='bottom' if dy < 0 else 'top',
                     color='black'
                 )                
         
-        ax.set_xlabel('Longitud de la viga (m)')
-        ax.axis('off')
-        ax.yaxis.set_visible(False)
+        ax_viga.set_xlabel('Longitud de la viga (m)')
+        ax_viga.axis('off')
+        ax_viga.yaxis.set_visible(False)
         
 
 
-        canvas_anterior = FigureCanvasTkAgg(fig, master=resultados_frame)  
-        canvas_anterior.draw()
-        canvas_anterior.get_tk_widget().pack(pady=10, fill='none', expand=False)
+        canvas_viga  = FigureCanvasTkAgg(fig_viga, master=resultados_frame)  
+        canvas_viga .draw()
+        canvas_viga .get_tk_widget().pack(pady=10, fill='none', expand=False)
 
     def obtener_datos():
         global canvas_anterior
         canvas_anterior = None
         global text_output
         global carga_distribuida
+        borrar_graficas()
         try:
             if text_output:  
                 text_output.delete("1.0", "end") 
@@ -420,23 +424,14 @@ def seguir(ventana_principal):
                     reacciones_mensaje += f"Reacción en el apoyo móvil: {reac_A_y:.2f} N\n"
                     reacciones_mensaje += f"Reacción en el apoyo fijo: {reac_B_y:.2f} N\n"
 
-
-                else:
-                    if carga_distribuida is not None:  
-                        reac_A_y = (carga_distribuida * longitud_viga) / 2
-                        reac_B_y = (carga_distribuida * longitud_viga) / 2
-                        reacciones_mensaje += f"Reacción en el apoyo móvil: {reac_A_y:.2f} N\n"
-                        reacciones_mensaje += f"Reacción en el apoyo fijo: {reac_B_y:.2f} N\n"
-                    else:  
-                        reacciones_mensaje += "No se han ingresado fuerzas ni cargas distribuidas.\n"
-
-                if carga_distribuida is not None:
-                    try:
-                        carga_distribuida = float(carga_distribuida)
-                        if carga_distribuida <= 0:
-                            raise ValueError("La carga distribuida debe ser un número positivo.")
-                    except ValueError:
-                        raise ValueError("La carga distribuida debe ser un número válido.")
+                if carga_distribuida is not None:  
+                    reac_A_y += (carga_distribuida * longitud_viga) / 2
+                    reac_B_y += (carga_distribuida * longitud_viga) / 2
+                    reacciones_mensaje = ''
+                    reacciones_mensaje += f"Reacción en el apoyo móvil: {reac_A_y:.2f} N\n"
+                    reacciones_mensaje += f"Reacción en el apoyo fijo: {reac_B_y:.2f} N\n"
+                else:  
+                    reacciones_mensaje += "No se han ingresado fuerzas ni cargas distribuidas.\n"
 
             elif tipo_de_viga == "Viga en voladizo":
                 reac_A_y = 0
@@ -515,7 +510,8 @@ def seguir(ventana_principal):
                     M_B=0   
                     momento,cortante,m = F_int_viga_3(M_A, M_B, reac_A_y, reac_B_y, datos, carga_distribuida, longitud_viga)
                     graficar_M_C(momento, cortante, Frame_momento,longitud_viga)
-
+                if datos:
+                    datos[0][0] = -datos[0][0] 
 
         except ValueError as e:
             text_output.delete("1.0", "end")
@@ -629,11 +625,16 @@ def seguir(ventana_principal):
         except ValueError:
             messagebox.showerror("Error", "Por favor, ingresa un valor válido para la magnitud.")
 
+    def borrar_carga_distribuida():
+        global carga_distribuida
+        if carga_distribuida is not None:
+            carga_distribuida = None
+            messagebox.showinfo("Carga distribuida", "La carga distribuida ha sido eliminada correctamente.")
+        else:
+            messagebox.showwarning("Carga distribuida", "No hay una carga distribuida para eliminar.")
+
     def graficar_M_C(Momento, Cortante, frame, long):
-        global ax1
-        global ax2
-        global canvas_anterior
-        
+        global canvas_momento_cortante, ax1, ax2
         
         material = entry_material.get()
         
@@ -647,34 +648,45 @@ def seguir(ventana_principal):
             color_viga = '#8A4C29' 
         
 
+        if canvas_momento_cortante is not None:
+            canvas_momento_cortante.get_tk_widget().destroy()
+            canvas_momento_cortante = None
+
         fig = Figure(figsize=(12, 6))
+
         x = [i * 0.01 for i in range(int(long / 0.01) + 1)]
 
         ax1 = fig.add_subplot(211)
         ax1.plot(x, Momento, label="Momento Flector", color="blue")
-        ax1.axhline(0, color= color_viga, linewidth=5, linestyle='-')
+        ax1.axhline(0, color=color_viga, linewidth=2, linestyle='-')
         ax1.set_title("Diagrama de Momento Flector")
         ax1.set_ylabel("Momento Flector (N·m)")
         ax1.grid(True)
         ax1.legend()
 
-        ax2 = fig.add_subplot(212) 
+        ax2 = fig.add_subplot(212)
         ax2.plot(x, Cortante, label="Cortante", color="red")
-        ax2.axhline(0, color=color_viga, linewidth=5, linestyle='-')
+        ax2.axhline(0, color=color_viga, linewidth=2, linestyle='-')
         ax2.set_xlabel("Longitud de la Viga (m)")
         ax2.set_ylabel("Cortante (N)")
         ax2.grid(True)
         ax2.legend()
 
-        canvas_anterior = FigureCanvasTkAgg(fig, master=frame)
-        canvas_anterior.draw()
-        canvas_anterior.get_tk_widget().pack(fill="both", expand=True)
+        canvas_momento_cortante = FigureCanvasTkAgg(fig, master=frame)
+        canvas_momento_cortante.draw()
+        canvas_momento_cortante.get_tk_widget().pack(fill="both", expand=True)
 
     def borrar_graficas():
-        global canvas_anterior
-        if canvas_anterior is not None:
-            canvas_anterior.get_tk_widget().destroy()
-            canvas_anterior = None 
+        global canvas_viga, canvas_momento_cortante
+
+        if canvas_viga is not None:
+            canvas_viga.get_tk_widget().destroy()
+            canvas_viga = None
+
+        if canvas_momento_cortante is not None:
+            canvas_momento_cortante.get_tk_widget().destroy()
+            canvas_momento_cortante = None
+
 
         
     longitud_viga = 10
@@ -685,6 +697,10 @@ def seguir(ventana_principal):
     global carga_distribuida
     carga_distribuida = None
     global Frame_momento
+    global canvas_viga
+    global canvas_momento_cortante
+    canvas_viga = None
+    canvas_momento_cortante = None
 
     
     root = tk.Toplevel(ventana_principal) 
@@ -788,12 +804,13 @@ def seguir(ventana_principal):
     boton_borrar.grid(row=1, column=3, columnspan=2, padx=10, pady=10)
 
     boton_graficar = ttk.Button(
-        fuerzas_frame, 
+        datos_frame, 
         text="Mostrar gráfico", 
-        style="info.TButton", 
-        command=obtener_datos
+        style="warning.TButton", 
+        command=obtener_datos, 
+        width= 70
         )
-    boton_graficar.grid(row=2, column=3, columnspan=2, padx=5, pady=5)
+    boton_graficar.grid(row=3, column=1, columnspan=2, padx=5, pady=5)
 
     boton_carga_distribuida = ttk.Button(
         fuerzas_frame, 
@@ -801,7 +818,15 @@ def seguir(ventana_principal):
         style="success.TButton", 
         command=abrir_ventana_carga_distribuida
         )
-    boton_carga_distribuida.grid(row=2, column=0, columnspan=2, padx=5, pady=5)
+    boton_carga_distribuida.grid(row=2, column=0, columnspan=1, padx=3, pady=5)
+    
+    boton_borrar_carga_distribuida = ttk.Button(
+        fuerzas_frame, 
+        text="Borrar Carga Distribuida", 
+        style="danger.TButton", 
+        command=borrar_carga_distribuida
+        )
+    boton_borrar_carga_distribuida.grid(row=2, column=1, columnspan=1, padx=3, pady=5)    
 
     resultados_frame = ttk.Frame(frame_barra, padding=2, width=860, height=350)
     #!---------------vvvvvvvvvvvvv----restringe al framr para que no se espanda segun el tamaño de su contenido
@@ -826,7 +851,7 @@ def seguir(ventana_principal):
     Frame_momento = ttk.Frame(frame_barra, padding=2,width=860, height=400)
     Frame_momento.pack_propagate(False) 
     Frame_momento.pack(padx=5, pady=10)
-    Frame_ultimos_botones = ttk.Frame(frame_barra, padding=2,width=860, height=50)
+    '''Frame_ultimos_botones = ttk.Frame(frame_barra, padding=2,width=860, height=50)
     Frame_ultimos_botones.pack_propagate(False) 
     Frame_ultimos_botones.pack(padx=5, pady=10)
     boton_borrar = ttk.Button(   
@@ -835,5 +860,5 @@ def seguir(ventana_principal):
     style="danger.TButton",
     command=borrar_graficas,
     width=15 )   
-    boton_borrar.place(relx=0.6, rely=0.95, anchor="center") 
+    boton_borrar.place(relx=0.6, rely=0.95, anchor="center")''' 
     root.mainloop()
